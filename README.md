@@ -10,6 +10,7 @@ The question is long-term judgment: Polytopia rewards investing early (techs, ci
 - The model picks one of the four core tribes (Xin-xi, Imperius, Bardur, Oumaji) after reading the game's own tribe descriptions; the CPUs are drawn at random from the other three.
 - Every turn is a fresh session: the model sees the system prompt (rules, plus the game's own tech, unit and building text), the current state (fog of war respected), the legal actions, and up to 400 words of notes it wrote itself on the previous turn.
 - Medium reasoning effort for every model. Metric: the model's share of all three players' final score (33% is an even split). If the model is eliminated the game ends there, and the share uses everyone's score at that point.
+- **Sample standard:** three completed games per model. Rank by the arithmetic mean of each game's score share; average points is also computed per game. Eliminations count as completed games. Results with fewer than three completed games are provisional.
 
 ### Results so far (October 2026)
 
@@ -21,13 +22,13 @@ The question is long-term judgment: Polytopia rewards investing early (techs, ci
 | Claude Opus 5.5 | Claude Code | 3 | 46% | 14,621 | 2nd, 1st, 1st |
 | Claude Fable 5.1 | Cursor | 1 | 43% | 14,352 | 1st |
 | Grok 4.7 | Cursor | 1 | 38% | 12,952 | 2nd |
+| GPT-6.1 Terra | Codex | 3 | 32% | 9,296 | 3rd (elim.), 1st, 2nd |
 | GPT-6 Luna | Codex | 1 | 27% | 6,160 | 3rd |
 | Muse Wonder 1.0 | Cursor | 1 | 26% | 7,480 | 3rd (eliminated) |
 | Claude Haiku 5.5 | Claude Code | 3 | 26% | 5,267 | 1st, 3rd (elim.), 3rd (elim.) |
 | Claude Sonnet 5.5 | Claude Code | 3 | 25% | 6,173 | 3rd (elim.), 1st, 3rd (elim.) |
-| GPT-6.1 Terra | Codex | 1 | 13% | 3,144 | 3rd (eliminated turn 24) |
 
-Most models have one game, so treat the order as rough: single games swing by 10–20 points. The current leaderboard excludes the older GPT-5.6 generation; its raw game logs are retained.
+Models with fewer than three games have provisional rankings; even three-game averages can vary with the map draw. The current leaderboard excludes the older GPT-5.6 generation; its raw game logs are retained.
 
 ## How it works
 

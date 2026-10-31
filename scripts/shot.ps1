@@ -3,4 +3,4 @@ $b = [System.Windows.Forms.SystemInformation]::VirtualScreen
 $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
 $g = [System.Drawing.Graphics]::FromImage($bmp)
 $g.CopyFromScreen($b.Left, $b.Top, 0, 0, $bmp.Size)
-$bmp.Save("C:\Users\caleb\Workspace\projects\polytopia\shot.png")
+$bmp.Save((Join-Path (Split-Path $PSScriptRoot -Parent) "shot.png"))

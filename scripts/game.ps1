@@ -8,7 +8,7 @@
 # -after <name> waits for logs\game-<name>.done first. The queue stops if the Claude usage limit is hit.
 # After each game, the game's own save (.state) and a screenshot go to logs\saves\<name>.* before quitting to the menu.
 param([string]$games, [string]$after = "", [string]$marker = "queue", [switch]$compact, [string]$extra = "")
-$w = "C:\Users\caleb\Workspace\projects\polytopia"
+. "$PSScriptRoot\paths.ps1"
 Set-Location "$w\harness"
 if ($after) { while (-not (Test-Path "$w\logs\game-$after.done")) { Start-Sleep 30 } }
 foreach ($g in $games.Split(",")) {
@@ -18,7 +18,7 @@ foreach ($g in $games.Split(",")) {
   $prompt = if ($mode -eq "Might") { "system-might" } elseif ($mode -eq "Domination") { if ([int]$opp -gt 1) { "system-domination-multi" } else { "system-domination" } } elseif ([int]$opp -gt 1) { "system-perfection-multi" } else { "system" }
   if ($framing -eq "competitive") { $prompt += "-competitive" }
   $turns = if ($mode -eq "Might") { "--turns 60 --max-minutes 240" } elseif ($mode -ne "Domination") { "--turns 30" } elseif ([int]$opp -gt 1) { "--turns 80 --max-minutes 600 --max-calls 100 --turn-timeout 900" } else { "--turns 60 --max-minutes 240" }
-  cmd /c ".venv\Scripts\python.exe -u -m $module --model $model --effort $effort --difficulty $diff --mode $mode --opponents $opp --map-size $size --system-prompt $w\prompts\$prompt.md $turns $(if ($compact) { "--compact" }) $extra --claude C:\Users\caleb\.local\bin\claude.exe < NUL > `"$w\logs\game-$name.out`" 2>&1"
+  cmd /c ".venv\Scripts\python.exe -u -m $module --model $model --effort $effort --difficulty $diff --mode $mode --opponents $opp --map-size $size --system-prompt $w\prompts\$prompt.md $turns $(if ($compact) { "--compact" }) $extra --claude `"$claude`" < NUL > `"$w\logs\game-$name.out`" 2>&1"
   $code = $LASTEXITCODE
   New-Item -ItemType Directory -Force "$w\logs\saves" | Out-Null
   $sp = Get-ChildItem "$env:USERPROFILE\AppData\LocalLow\Midjiwan\Polytopia\*\Data\Singleplayer\*.state" -ErrorAction SilentlyContinue | Sort LastWriteTime -Descending | Select -First 1

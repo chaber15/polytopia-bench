@@ -1,4 +1,4 @@
-$l = "C:\Users\caleb\Workspace\projects\polytopia\logs"
+$l = Join-Path (Split-Path $PSScriptRoot -Parent) "logs"
 Get-Date
 $names = ((Get-Content "$l\queue.txt") + "," + (Get-Content "$l\queue2.txt")).Split(",") | % { $_.Split(":")[0] }
 foreach ($n in $names) {

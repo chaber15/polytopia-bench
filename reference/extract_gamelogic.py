@@ -1,14 +1,16 @@
 """Copy the game's rules table (TextAsset GameLogicData28) out of your own install into reference/, read-only on the game.
 
 Usage: python reference/extract_gamelogic.py ["<game folder>"]   (needs: pip install UnityPy)
-Default folder: the Steam install on Windows. Writes reference/GameLogicData28.json (gitignored: it is the game's data).
+Default folder: %POLYTOPIA_DIR%, else the Steam install on Windows. Writes reference/GameLogicData28.json (gitignored: it is the game's data).
 """
+import os
 import sys
 from pathlib import Path
 
 import UnityPy
 
-game = Path(sys.argv[1] if len(sys.argv) > 1 else r"C:\Program Files (x86)\Steam\steamapps\common\The Battle of Polytopia")
+game = Path(sys.argv[1] if len(sys.argv) > 1 else os.environ.get("POLYTOPIA_DIR")
+            or r"C:\Program Files (x86)\Steam\steamapps\common\The Battle of Polytopia")
 bundle = game / "Polytopia_Data" / "data.unity3d"
 out = Path(__file__).resolve().parent / "GameLogicData28.json"
 for obj in UnityPy.load(str(bundle)).objects:

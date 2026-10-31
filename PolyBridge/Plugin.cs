@@ -28,7 +28,9 @@ public class Plugin : BasePlugin
 // Polls a command file once per ~0.25 s on the main thread and appends results to out.log.
 public class Bridge : MonoBehaviour
 {
-    const string Dir = @"C:\Users\caleb\Workspace\projects\polytopia\bridge";
+    // Folder for the file channel (cmd.txt / out.log / loc.tsv): %POLYBRIDGE_DIR%, else %LOCALAPPDATA%\PolyBridge.
+    static readonly string Dir = Environment.GetEnvironmentVariable("POLYBRIDGE_DIR") is { Length: > 0 } d ? d
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PolyBridge");
     static string CmdFile => Path.Combine(Dir, "cmd.txt");
     static string OutFile => Path.Combine(Dir, "out.log");
 

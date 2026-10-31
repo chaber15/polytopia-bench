@@ -49,13 +49,22 @@ If a model session fails (provider outage, timeout), the harness never ends the 
 
 ## Running it
 
-You need your own copy of the game (Steam, Windows) at build 2.17.3.16375. The paths in the plugin and the PowerShell scripts are set for one machine; edit them for yours (`Dir` in `PolyBridge/Plugin.cs`, `GameDir` in `PolyBridge/PolyBridge.csproj`, the paths in `scripts/*.ps1`).
+You need your own copy of the game (Steam, Windows) at build 2.17.3.16375. Paths default to a standard setup; override them with environment variables:
+
+| Variable | Default | Used by |
+|---|---|---|
+| `POLYTOPIA_DIR` | `C:\Program Files (x86)\Steam\steamapps\common\The Battle of Polytopia` | plugin build, `scripts/*.ps1`, `extract_gamelogic.py` |
+| `POLYBRIDGE_DIR` | `%LOCALAPPDATA%\PolyBridge` | the plugin's file channel (`cmd.txt`, `out.log`, `loc.tsv`) and `scripts/cmd.ps1` |
+| `POLY_PLAYER_DIR` | `%USERPROFILE%\polytopia-player` (Windows), `player/` (elsewhere) | empty working folder for the model's sessions |
+| `CLAUDE_EXE` | `%USERPROFILE%\.local\bin\claude.exe`, else `claude` on PATH | `scripts/game.ps1` |
+
+The PowerShell scripts find the repo from their own location (`scripts/paths.ps1`).
 
 1. **BepInEx:** install BepInEx 6.0.0-be.785 IL2CPP win-x64 (builds.bepinex.dev) into the game folder and launch the game once so it generates the interop DLLs.
 2. **Plugin:** build with the .NET 8 SDK (`dotnet build PolyBridge`) and copy `PolyBridge.dll` into `BepInEx\plugins` (`scripts/redeploy.ps1` does build, copy and relaunch).
 3. **Game reference** (the game's own text, so it is not in this repo):
    - `pip install UnityPy` and run `python reference/extract_gamelogic.py` → `reference/GameLogicData28.json`.
-   - With the game running, write `locdump` into the plugin's `cmd.txt`; rename the resulting `loc.tsv` to `reference/loc-en.tsv`.
+   - With the game running, `scripts/cmd.ps1 locdump` writes `loc.tsv` into `%LOCALAPPDATA%\PolyBridge`; copy it to `reference/loc-en.tsv`.
    - `python scripts/apply_reference.py` → `reference/reference.md`, `units.json`, `tribes.md`.
 4. **Harness:** `python -m venv harness/.venv`, `harness/.venv/Scripts/pip install -r harness/requirements.txt`, then `pytest` in `harness/`.
 5. **Play** (from `harness/`), the headline settings:

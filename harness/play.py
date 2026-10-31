@@ -19,7 +19,7 @@ from render import turn_prompt
 HERE = Path(__file__).resolve().parent
 SYSTEM_PROMPT = HERE.parent / "prompts" / "system.md"
 # empty folder for the player session: no CLAUDE.md, project files or git status get loaded
-PLAYER_DIR = Path(os.environ.get("POLY_PLAYER_DIR") or (r"C:\Users\caleb\Workspace\polytopia-player" if os.name == "nt"
+PLAYER_DIR = Path(os.environ.get("POLY_PLAYER_DIR") or (Path.home() / "polytopia-player" if os.name == "nt"
                                                        else HERE.parent / "player"))
 
 

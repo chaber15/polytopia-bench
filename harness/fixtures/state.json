@@ -1,0 +1,21 @@
+{"ok":true,"stateId":1,"turn":0,"maxTurns":30,
+ "me":{"id":1,"tribe":"Bardur","stars":5,"income":2,"score":50,"techs":["Hunting"]},
+ "opponents":[{"id":2,"tribe":"Imperius"}],
+ "map":{"w":5,"h":5,"tiles":[
+  {"xy":[0,0],"t":"Ocean"},
+  {"xy":[1,0],"t":"Ocean"},
+  {"xy":[2,0],"t":"Water"},
+  {"xy":[0,1],"t":"Field"},
+  {"xy":[1,1],"t":"Field","own":1},
+  {"xy":[2,1],"t":"Field","own":1,"res":"Fruit","imp":"Farm"},
+  {"xy":[0,2],"t":"Field"},
+  {"xy":[1,2],"t":"Field","own":1,"road":true},
+  {"xy":[2,2],"t":"Mountain","own":1}
+ ]},
+ "cities":[{"xy":[1,1],"name":"Guro","own":1,"cap":true,"lvl":1,"pop":1,"popMax":3,"units":1,"unitsMax":3,"walls":false}],
+ "villages":[[0,2]],
+ "units":[
+  {"id":4,"type":"Warrior","own":1,"xy":[1,2],"hp":10,"hpMax":10,"vet":false,"moved":false,"attacked":false},
+  {"id":5,"type":"Rider","own":1,"xy":[2,1],"hp":10,"hpMax":10,"vet":false,"moved":false,"attacked":false}
+ ],
+ "ruins":[]}

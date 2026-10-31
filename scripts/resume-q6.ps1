@@ -1,0 +1,2 @@
+# One-off: continue the 3-CPU Hard Domination game from its autosave (turn 53).
+& C:\Users\caleb\Workspace\projects\polytopia\scripts\game.ps1 -games (Get-Content C:\Users\caleb\Workspace\projects\polytopia\logs\queue6.txt) -marker queue6 -compact -extra "--resume --until-turn 80 --plan-file C:\Users\caleb\Workspace\projects\polytopia\harness\logs\20261026-211241-claude-opus-turns\turn52\plan.txt"

@@ -1,0 +1,5 @@
+{"ok":true,"stateId":2,
+ "events":["Warrior 4 moved to [0,2]","revealed 2 tiles"],
+ "changes":{
+  "units":[{"id":4,"type":"Warrior","own":1,"xy":[0,2],"hp":10,"hpMax":10,"vet":false,"moved":true,"attacked":false}],
+  "tiles":[{"xy":[0,3],"t":"Field"},{"xy":[1,3],"t":"Field"}]}}

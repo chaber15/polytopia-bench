@@ -1,0 +1,23 @@
+bin/
+obj/
+.venv/
+__pycache__/
+harness/logs/
+bridge/
+shot.png
+*.zip
+logs/
+reference/GameLogicData28.json
+reference/loc-en.tsv
+# Cursor CLI workspaces, written by play.py each session
+player/
+player-cursor/
+# Generated from your copy of the game by scripts/apply_reference.py: the game's own text, never committed
+reference/reference.md
+reference/tribes.md
+reference/units.json
+# Local agent notes and settings
+CLAUDE.md
+TASKS.md
+tasks/
+.claude/

@@ -17,10 +17,10 @@ The question is long-term judgment: Polytopia rewards investing early (techs, ci
 | Model | Via | Games | Share of score | Avg points | Places |
 |---|---|---|---|---|---|
 | Gemini 4 Argon | Cursor | 1 | 78% | 23,064 | 1st |
-| GPT-6.1 Sol | Codex | 2 | 52% | 16,772 | 1st, 1st |
 | GPT-6 Astra | Codex | 2 | 51% | 15,668 | 2nd, 1st |
 | Claude Opus 5.5 | Claude Code | 3 | 46% | 14,621 | 2nd, 1st, 1st |
 | Claude Fable 5.1 | Cursor | 1 | 43% | 14,352 | 1st |
+| GPT-6.1 Sol | Codex | 3 | 39% | 11,891 | 1st, 1st, 3rd (elim.) |
 | Grok 4.7 | Cursor | 1 | 38% | 12,952 | 2nd |
 | GPT-6.1 Terra | Codex | 3 | 32% | 9,296 | 3rd (elim.), 1st, 2nd |
 | GPT-6 Luna | Codex | 1 | 27% | 6,160 | 3rd |

@@ -20,16 +20,13 @@ The question is long-term judgment: Polytopia rewards investing early (techs, ci
 | GPT-6 Astra | Codex | 2 | 51% | 15,668 | 2nd, 1st |
 | Claude Opus 5.5 | Claude Code | 3 | 46% | 14,621 | 2nd, 1st, 1st |
 | Claude Fable 5.1 | Cursor | 1 | 43% | 14,352 | 1st |
-| GPT-5.6 Sol | Cursor | 1 | 40% | 12,848 | 2nd |
 | Grok 4.7 | Cursor | 1 | 38% | 12,952 | 2nd |
-| GPT-5.6 Luna | Cursor | 1 | 38% | 11,336 | 2nd |
 | GPT-6 Luna | Codex | 1 | 27% | 6,160 | 3rd |
 | Muse Wonder 1.0 | Cursor | 1 | 26% | 7,480 | 3rd (eliminated) |
 | Claude Haiku 5.5 | Claude Code | 3 | 26% | 5,267 | 1st, 3rd (elim.), 3rd (elim.) |
 | Claude Sonnet 5.5 | Claude Code | 3 | 25% | 6,173 | 3rd (elim.), 1st, 3rd (elim.) |
-| GPT-5.6 Terra | Cursor | 1 | 18% | 4,712 | 3rd |
 
-Most models have one game, so treat the order as rough: single games swing by 10–20 points. 15 of 21 games picked Imperius.
+Most models have one game, so treat the order as rough: single games swing by 10–20 points. The current leaderboard excludes the older GPT-5.6 generation; its raw game logs are retained.
 
 ## How it works
 

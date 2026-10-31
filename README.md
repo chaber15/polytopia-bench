@@ -25,6 +25,7 @@ The question is long-term judgment: Polytopia rewards investing early (techs, ci
 | Muse Wonder 1.0 | Cursor | 1 | 26% | 7,480 | 3rd (eliminated) |
 | Claude Haiku 5.5 | Claude Code | 3 | 26% | 5,267 | 1st, 3rd (elim.), 3rd (elim.) |
 | Claude Sonnet 5.5 | Claude Code | 3 | 25% | 6,173 | 3rd (elim.), 1st, 3rd (elim.) |
+| GPT-6.1 Terra | Codex | 1 | 13% | 3,144 | 3rd (eliminated turn 24) |
 
 Most models have one game, so treat the order as rough: single games swing by 10–20 points. The current leaderboard excludes the older GPT-5.6 generation; its raw game logs are retained.
 

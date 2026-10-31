@@ -5,6 +5,8 @@
 #   e.g. scripts/bench-cursor.sh grok-4.7-medium bench-grok47-medium 3
 # Writes logs/<prefix>-<n>.out and logs/<prefix>.done; stops early if Cursor reports a usage/limit error.
 cd "$(dirname "$0")/../harness" || exit 1
+# keep the Mac awake until this script ends (idle sleep drops the tunnel and the model's connection; a closed lid still sleeps)
+command -v caffeinate > /dev/null && caffeinate -i -w $$ &
 mkdir -p ../logs
 model="$1"; prefix="$2"; n="${3:-3}"
 for i in $(seq 1 "$n"); do

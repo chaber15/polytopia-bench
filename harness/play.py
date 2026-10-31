@@ -1,12 +1,15 @@
 """Let a model play a game: one fresh headless session per turn, tools via mcp_poly.py.
 
-Drivers: `claude` (Claude Code, `claude -p`) and `cursor` (Cursor's CLI, `agent -p`, any model on the Cursor account).
+Drivers: `claude` (Claude Code, `claude -p`), `cursor` (Cursor's CLI, `agent -p`, any model on the Cursor account),
+`codex` (`codex exec`), `antigravity` (Antigravity's ACP server, Gemini models) and `openrouter` (OpenRouter's API
+directly, no agent CLI around the model).
 Run from harness/:  python -m play --model sonnet --turns 30 --difficulty Easy
                     python -m play --driver cursor --model grok-4.7-medium ...
 """
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -18,9 +21,9 @@ from render import turn_prompt
 
 HERE = Path(__file__).resolve().parent
 SYSTEM_PROMPT = HERE.parent / "prompts" / "system.md"
-# empty folder for the player session: no CLAUDE.md, project files or git status get loaded
-PLAYER_DIR = Path(os.environ.get("POLY_PLAYER_DIR") or (Path.home() / "polytopia-player" if os.name == "nt"
-                                                       else HERE.parent / "player"))
+# empty folder for the player session, outside any git repo: no CLAUDE.md, project files or git status get loaded,
+# and Cursor reads .cursor/mcp.json from the git root, so inside this repo it would never see the game's tools
+PLAYER_DIR = Path(os.environ.get("POLY_PLAYER_DIR") or Path.home() / "polytopia-player")
 
 
 COMPACT_ACT = ("- `act(steps)`: do one or more actions in order, e.g. `steps=[{\"id\":3,\"to\":[6,6]},{\"id\":7}]`. "
@@ -78,9 +81,20 @@ def pick_tribe(args, log):
     PLAYER_DIR.mkdir(parents=True, exist_ok=True)
     text, data = "", {}
     try:
-        p = subprocess.run(cmd, cwd=PLAYER_DIR, stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8",
-                           env={**os.environ, "CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1"}, timeout=300)
-        data = codex_result(p.stdout) if getattr(args, "driver", "claude") == "codex" else normalize(json.loads(p.stdout))
+        if getattr(args, "driver", "claude") == "antigravity":   # no MCP server: nothing to call
+            data, err = agy_session(sysp + " Answer from the text below only; don't use any tools.\n\n" + question, args,
+                                    None, 300, PLAYER_DIR / "agy_pick.jsonl")
+            if err:
+                raise ValueError(err)
+        elif getattr(args, "driver", "claude") == "openrouter":   # no tools for the pick
+            import openrouter
+            data, err = openrouter.session(sysp, question, args, None, 300, PLAYER_DIR / "openrouter_pick.jsonl")
+            if err:
+                raise ValueError(err)
+        else:
+            p = subprocess.run(cmd, cwd=PLAYER_DIR, stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8",
+                               env={**os.environ, "CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1"}, timeout=300)
+            data = codex_result(p.stdout) if getattr(args, "driver", "claude") == "codex" else normalize(json.loads(p.stdout))
         text = data.get("result", "") or ""
     except (subprocess.TimeoutExpired, ValueError) as e:
         text = f"(pick failed: {e})"
@@ -250,6 +264,131 @@ def run_cursor(prompt, args, turn_dir, timeout):
     return data, None
 
 
+# Antigravity has no one-shot CLI; it speaks ACP (Agent Client Protocol: JSON-RPC over stdio). Its server binary comes
+# with T3 Code. GEMINI_HOME holds the login (antigravity-acp/acp_token.json); scripts/agy-home.sh copies T3's into it.
+AGY_HOME = Path(os.environ.get("POLY_AGY_HOME") or Path.home() / ".polytopia-agy")
+
+
+AGY_LIMIT = re.compile(r"usage limit reached|reached your current quota", re.I)
+
+
+def agy_exe(args):
+    if getattr(args, "agy", None):
+        return args.agy
+    found = sorted(Path.home().glob(".t3/tools/antigravity-acp/*/versions/*/agy_acp_server.par"), key=lambda p: p.stat().st_mtime)
+    if not found:
+        raise SystemExit("Antigravity ACP server not found: pass --agy <path to agy_acp_server.par>")
+    return str(found[-1])
+
+
+def agy_session(prompt, args, mcp, timeout, transcript):
+    """One Antigravity session: start the ACP server, open a session with the poly MCP server (`mcp`, or none),
+    set model and thinking level (--effort), send one prompt, read until it stops. Only poly tools are allowed;
+    Antigravity's own tools (shell, edits, browser) are denied when it asks; file reads don't ask and are only logged. Returns (Claude-shaped result, error)."""
+    import queue
+    import threading
+    if not (AGY_HOME / "antigravity-acp" / "acp_token.json").exists():
+        raise SystemExit(f"no Antigravity login in {AGY_HOME}: run scripts/agy-home.sh")
+    PLAYER_DIR.mkdir(parents=True, exist_ok=True)
+    p = subprocess.Popen([agy_exe(args)], cwd=PLAYER_DIR, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                         stderr=open(Path(transcript).with_suffix(".stderr.txt"), "w", encoding="utf-8"), text=True,
+                         encoding="utf-8", env={**os.environ, "GEMINI_HOME": str(AGY_HOME), "AGY_ACP_FORCE_FILE_STORAGE": "1"})
+    lines = queue.Queue()
+    threading.Thread(target=lambda: [lines.put(l) for l in p.stdout] + [lines.put(None)], daemon=True).start()
+    deadline = time.time() + timeout
+    text, used, calls, denied, builtin = [], 0, 0, [], []
+    with open(transcript, "w", encoding="utf-8") as tr:
+        def send(msg):
+            tr.write(">> " + json.dumps(msg) + "\n")
+            p.stdin.write(json.dumps(msg) + "\n"); p.stdin.flush()
+
+        def call(rid, method, params):
+            nonlocal used, calls
+            send({"jsonrpc": "2.0", "id": rid, "method": method, "params": params})
+            while True:
+                try:
+                    line = lines.get(timeout=max(1, deadline - time.time()))
+                except queue.Empty:
+                    raise TimeoutError(f"antigravity timed out after {timeout}s")
+                if line is None:
+                    raise ConnectionError(f"antigravity server exited ({p.poll()})")
+                tr.write(line); tr.flush()
+                m = json.loads(line)
+                if m.get("method") == "session/request_permission":
+                    tc = m["params"]["toolCall"]
+                    ok = ((tc.get("_meta") or {}).get("mcp") or {}).get("server") == "poly"
+                    if not ok:
+                        denied.append(tc.get("title", "?"))
+                    kinds = ("allow_once",) if ok else ("reject_once", "reject_always")
+                    opt = next(o["optionId"] for o in m["params"]["options"] if o["kind"] in kinds)
+                    send({"jsonrpc": "2.0", "id": m["id"], "result": {"outcome": {"outcome": "selected", "optionId": opt}}})
+                elif "method" in m and "id" in m:   # fs/terminal requests: this client offers neither
+                    send({"jsonrpc": "2.0", "id": m["id"], "error": {"code": -32601, "message": "not supported"}})
+                elif m.get("method") == "session/update":
+                    u = m["params"]["update"]
+                    kind = u.get("sessionUpdate")
+                    if kind == "agent_message_chunk" and (u.get("content") or {}).get("type") == "text":
+                        text.append(u["content"]["text"])
+                    elif kind == "usage_update":
+                        used = u.get("used", used)
+                    elif kind == "tool_call":
+                        calls += 1
+                        if ((u.get("_meta") or {}).get("mcp") or {}).get("server") != "poly":
+                            builtin.append(u.get("title", "?"))
+                elif m.get("id") == rid:
+                    if "error" in m:
+                        raise RuntimeError(f"{method}: {json.dumps(m['error'])[:300]}")
+                    return m["result"]
+
+        started = time.time()
+        try:
+            call(1, "initialize", {"protocolVersion": 1, "clientCapabilities": {"fs": {"readTextFile": False, "writeTextFile": False},
+                                                                                "terminal": False}})
+            servers = [] if mcp is None else [{"name": "poly", "command": mcp["command"], "args": mcp["args"],
+                                               "env": [{"name": k, "value": v} for k, v in mcp["env"].items()]}]
+            sess = call(2, "session/new", {"cwd": str(PLAYER_DIR), "mcpServers": servers})
+            sid = sess["sessionId"]
+            opts = {o["id"]: o for o in sess.get("configOptions", [])}
+            for rid, (cid, value) in enumerate([("model", args.model), ("thinking_level", args.effort)], start=3):
+                o = opts.get(cid)
+                if o is None or value not in [x["value"] for x in o["options"]]:
+                    raise RuntimeError(f"Antigravity {cid} {value!r} not available; options: "
+                                       f"{[x['value'] for x in (o or {}).get('options', [])]}")
+                if o["currentValue"] != value:
+                    call(rid, "session/set_config_option", {"sessionId": sid, "configId": cid, "value": value})
+            res = call(5, "session/prompt", {"sessionId": sid, "prompt": [{"type": "text", "text": prompt}]})
+            err = None if res.get("stopReason") == "end_turn" else f"antigravity stopped: {res.get('stopReason')}"
+            if AGY_LIMIT.search("".join(text)):   # Antigravity reports an exhausted quota as an ordinary reply
+                err = "antigravity usage limit: " + "".join(text)[:200]
+        except (TimeoutError, ConnectionError, RuntimeError, ValueError) as e:
+            err = str(e)
+        finally:
+            p.kill()
+    # Antigravity's own tools: reads run without asking (it reads the poly tool schemas it saved), the rest are denied
+    if builtin:
+        text.append(f"\n[Antigravity built-in tools: {'; '.join(builtin)}" + (f" (denied: {'; '.join(denied)})" if denied else "") + "]")
+    # ACP reports only the context size; it goes in input_tokens (no cost or output count from Antigravity)
+    data = {"result": "".join(text), "total_cost_usd": 0, "num_turns": calls, "duration_ms": int((time.time() - started) * 1000),
+            "usage": {"input_tokens": used, "output_tokens": 0, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}
+    return data, err
+
+
+def run_antigravity(prompt, args, turn_dir, timeout):
+    """One Antigravity session (Gemini models, signed in with Google). Like Cursor, the rules go first in the prompt."""
+    system_prompt = Path(getattr(args, "system_prompt", None) or SYSTEM_PROMPT).read_text(encoding="utf-8")
+    mcp = json.loads((turn_dir / "mcp.json").read_text(encoding="utf-8"))["mcpServers"]["poly"]
+    return agy_session(system_prompt + "\n" + CURSOR_NOTE + "\n\n---\n\n" + prompt, args, mcp, timeout,
+                       turn_dir / "agy_acp.jsonl")
+
+
+def run_openrouter(prompt, args, turn_dir, timeout):
+    """One session straight against OpenRouter's API: the rules as the system message, nothing else around the model."""
+    import openrouter
+    system_prompt = Path(getattr(args, "system_prompt", None) or SYSTEM_PROMPT).read_text(encoding="utf-8")
+    mcp = json.loads((turn_dir / "mcp.json").read_text(encoding="utf-8"))["mcpServers"]["poly"]
+    return openrouter.session(system_prompt, prompt, args, mcp, timeout, turn_dir / "openrouter.jsonl")
+
+
 def log_session(log, turn, data, turn_dir):
     u = (data or {}).get("usage", {})
     log.model(turn, text=(data or {}).get("result", "") or "",
@@ -269,7 +408,7 @@ def log_session(log, turn, data, turn_dir):
 
 def play(args, bridge=None, log=None):
     bridge = bridge or Bridge(args.url)
-    log = log or GameLog(f"{getattr(args, 'driver', 'claude')}-{args.model}")
+    log = log or GameLog(f"{getattr(args, 'driver', 'claude')}-{args.model.replace('/', '-')}")   # OpenRouter ids have a /
     out_dir = Path(args.out) if args.out else HERE / "logs" / (log.path.stem + "-turns")
     started = time.time()
     plan = ""
@@ -325,7 +464,8 @@ def play(args, bridge=None, log=None):
                 if state is None:
                     break
                 prompt = turn_prompt(state, actions, turn, state.get("maxTurns", args.turns), plan, events)
-            data, err = {"cursor": run_cursor, "codex": run_codex}.get(getattr(args, "driver", "claude"), run_claude)(
+            data, err = {"cursor": run_cursor, "codex": run_codex, "antigravity": run_antigravity,
+                         "openrouter": run_openrouter}.get(getattr(args, "driver", "claude"), run_claude)(
                 prompt, args, turn_dir, args.turn_timeout)
             log_session(log, turn, data, turn_dir)
             if err:
@@ -386,11 +526,15 @@ def main(argv=None):
     p.add_argument("--effort", default="medium")
     p.add_argument("--url", default=DEFAULT_URL)
     p.add_argument("--claude", default="claude")
-    p.add_argument("--driver", default="claude", choices=["claude", "cursor", "codex"],
+    p.add_argument("--driver", default="claude", choices=["claude", "cursor", "codex", "antigravity", "openrouter"],
                    help="claude: Claude Code (claude -p); cursor: Cursor's CLI (agent -p), --model is a Cursor model id; "
-                        "codex: OpenAI's Codex CLI (codex exec), --model is a Codex model id and --effort its reasoning effort")
+                        "codex: OpenAI's Codex CLI (codex exec), --model is a Codex model id and --effort its reasoning effort; "
+                        "antigravity: Antigravity's ACP server, --model e.g. gemini-3.8-flash and --effort its thinking level; "
+                        "openrouter: OpenRouter's API directly (OPENROUTER_API_KEY), --model e.g. google/gemini-4-argon, "
+                        "--effort its reasoning effort")
     p.add_argument("--cursor", default="agent", help="Cursor CLI command")
     p.add_argument("--codex", default="codex", help="Codex CLI command")
+    p.add_argument("--agy", help="Antigravity ACP server (default: the newest one T3 Code installed)")
     p.add_argument("--max-calls", type=int, default=40)
     p.add_argument("--max-errors", type=int, default=3)
     p.add_argument("--turn-timeout", type=int, default=600, help="seconds per claude session")

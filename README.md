@@ -36,7 +36,7 @@ Models with fewer than three games have provisional rankings; even three-game av
 Polytopia (Steam) ── PolyBridge plugin (C#, BepInEx 6 IL2CPP) ── HTTP localhost:7777
                                                                      │
           harness/play.py ── one model session per turn ── MCP tools (harness/mcp_poly.py)
-                              (Claude Code, Cursor CLI or Codex CLI)
+                              (Claude Code, Cursor CLI, Codex CLI, Antigravity or OpenRouter)
 ```
 
 - `PolyBridge/` — the plugin. It only calls the game's own functions for legal moves, prices and commands. Contract: `spec/API.md`.
@@ -74,7 +74,7 @@ The PowerShell scripts find the repo from their own location (`scripts/paths.ps1
      --system-prompt ../prompts/system-perfection-multi.md
    ```
 
-   `--driver cursor --model <cursor model id>` uses the Cursor CLI (`agent`); `--driver codex --model <id> --effort <level>` uses the Codex CLI. Both can run on another machine with the port forwarded (`ssh -N -L 7777:localhost:7777 <pc>`); `scripts/bench-cursor.sh` and `scripts/bench-codex.sh` run headline games that way.
+   `--driver cursor --model <cursor model id>` uses the Cursor CLI (`agent`); `--driver codex --model <id> --effort <level>` uses the Codex CLI. Both can run on another machine with the port forwarded (`ssh -N -L 7777:localhost:7777 <pc>`); `scripts/bench-cursor.sh` and `scripts/bench-codex.sh` run headline games that way. `--driver antigravity --model gemini-3.8-flash --effort <low|medium|high>` plays Gemini through Antigravity's ACP server (the one T3 Code installs; `--agy` to point elsewhere): run `scripts/agy-home.sh` once to give the harness a copy of T3's Antigravity login, then `scripts/bench-antigravity.sh`. Antigravity reports only context size, so its token columns show context, not usage. `--driver openrouter --model <OpenRouter id, e.g. google/gemini-4-argon> --effort <level>` calls OpenRouter's API directly, with no agent CLI around the model: the rules are the system message and the game's tools are the only tools (key in `OPENROUTER_API_KEY`; `scripts/bench-openrouter.sh` reads `~/.polytopia-openrouter-key`). Running out of credit stops the game with the turn left open for `--resume`.
 
 Single-player only. Don't use this online or in ranked play.
 

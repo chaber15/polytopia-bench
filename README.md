@@ -16,12 +16,12 @@ The question is long-term judgment: Polytopia rewards investing early (techs, ci
 
 | Model | Via | Games | Share of score | Avg points | Places |
 |---|---|---|---|---|---|
-| Gemini 4 Argon | Cursor | 1 | 78% | 23,064 | 1st |
+| Gemini 4 Argon | Cursor / OpenRouter | 3 | 74% | 25,605 | 1st, 1st, 1st |
 | GPT-6 Astra | Codex | 3 | 51% | 14,920 | 2nd, 1st, 1st |
 | Claude Opus 5.5 | Claude Code | 3 | 46% | 14,621 | 2nd, 1st, 1st |
 | Claude Fable 5.1 | Cursor | 1 | 43% | 14,352 | 1st |
 | GPT-6.1 Sol | Codex | 3 | 39% | 11,891 | 1st, 1st, 3rd (elim.) |
-| Grok 4.7 | Cursor | 1 | 38% | 12,952 | 2nd |
+| Grok 4.7 | Cursor | 3 | 38% | 12,515 | 2nd, 2nd, 1st |
 | GPT-6.1 Terra | Codex | 3 | 32% | 9,296 | 3rd (elim.), 1st, 2nd |
 | GPT-6 Luna | Codex | 1 | 27% | 6,160 | 3rd |
 | Muse Wonder 1.0 | Cursor | 1 | 26% | 7,480 | 3rd (eliminated) |
@@ -76,7 +76,9 @@ The PowerShell scripts find the repo from their own location (`scripts/paths.ps1
 
    `--driver cursor --model <cursor model id>` uses the Cursor CLI (`agent`); `--driver codex --model <id> --effort <level>` uses the Codex CLI. Both can run on another machine with the port forwarded (`ssh -N -L 7777:localhost:7777 <pc>`); `scripts/bench-cursor.sh` and `scripts/bench-codex.sh` run headline games that way. `--driver antigravity --model gemini-3.8-flash --effort <low|medium|high>` plays Gemini through Antigravity's ACP server (the one T3 Code installs; `--agy` to point elsewhere): run `scripts/agy-home.sh` once to give the harness a copy of T3's Antigravity login, then `scripts/bench-antigravity.sh`. Antigravity reports only context size, so its token columns show context, not usage. `--driver openrouter --model <OpenRouter id, e.g. google/gemini-4-argon> --effort <level>` calls OpenRouter's API directly, with no agent CLI around the model: the rules are the system message and the game's tools are the only tools (key in `OPENROUTER_API_KEY`; `scripts/bench-openrouter.sh` reads `~/.polytopia-openrouter-key`). Running out of credit stops the game with the turn left open for `--resume`.
 
-Single-player only. Don't use this online or in ranked play.
+**Pass & Play against the model:** start the harness with `--seat <player number>` (and `--mode`, `--system-prompt ../prompts/system-passplay.md`), then set up a Pass & Play game in Polytopia with the model in that seat. The harness waits at the menu, joins the game, and plays only its seat, waiting as long as the people take; any number of seats can be models, one harness each. On a model's "Next up" screen the plugin waits `--start-delay` seconds (default 3, so whoever just played can look away), then presses START, skips the recap and dismisses that seat's popups; people's screens are left alone. The prompt is filled in with the mode, player count, map size and the model's seat. The game must show on a real or Remote Desktop screen, and a Remote Desktop session must stay connected for the whole game: connecting or disconnecting while a game runs can freeze it.
+
+Offline only: single-player and local Pass & Play. Don't use this online or in ranked play.
 
 ## Not affiliated
 

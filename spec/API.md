@@ -28,7 +28,7 @@ True when: in a match, it is the local player's turn, `Client.IsWaitingForComman
 ```json
 {"ok":true,"phase":"my_turn","ready":true,"turn":3,"maxTurns":30}
 ```
-`phase`: `menu` | `loading` | `my_turn` | `busy` (animations, CPU turn) | `game_over`. `turn`/`maxTurns` omitted outside a match (`maxTurns` omitted if no turn limit).
+`phase`: `menu` | `loading` | `my_turn` | `busy` (animations, CPU turn) | `game_over`. `turn`/`maxTurns` omitted outside a match (`maxTurns` omitted if no turn limit). In a match also `current` (player to move) and `players` (count); `seats` while model seats are set.
 
 ### `POST /newgame`
 Body (all optional, defaults shown):
@@ -103,9 +103,16 @@ Only in `game_over`:
 ```
 
 ### `POST /quit`
-Returns to the main menu (`menu` phase) from any match state.
+Returns to the main menu (`menu` phase) from any match state. Clears the model seats.
+
+### `POST /seat`
+Pass & Play. `{"seat":3}` adds a model seat, `{"seat":0}` clears them; optional `"startDelay"` (seconds, default 3). With seats set, `my_turn` means a model seat is to move (a client playing one seat also checks `current`); on a model seat the plugin presses the "Next up" START after `startDelay`, skips the recap and dismisses popups, and leaves people's seats alone. `/end_turn` answers `busy` once the turn has passed to another seat.
+```json
+{"ok":true,"seats":[3],"startDelay":3}
+```
 
 ## Change log
 - v1, 25 Oct 2026: initial contract (Opus).
+- v1.3, 31 Oct 2026: `/seat` (Pass & Play model seats); `/status` gains `current`, `players`, `seats`.
 - v1.2, 27 Oct 2026: `/resume`; opponents carry `rel` (peace, cooldown) and `out`; actions `peace` (forced accept/decline) and `diplomacy`; `pop`/`popMax` meaning corrected.
 - v1.1, 25 Oct 2026: from Sonnet's plugin report: POSTs need a body; localhost only; cities drop `unitsMax`/`walls`; `Disband`/`Destroy` not listed in `/actions`; harvest is `build` with `imp` = the harvest name (e.g. `Hunting`); `stateId` also advances on opponent commands; `/end_turn` `turn` is the game's `CurrentTurn` (30 at Perfection game over).

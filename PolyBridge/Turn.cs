@@ -49,6 +49,7 @@ public static partial class Api
         if (!cmd.IsValid(gs, out var err)) return Reply.Err("invalid: " + err);
         if (!ClientActionManager.CanReceiveCommand(cmd, gs)) return Reply.Err("client not ready for command", 409);
         uint startTurn = gs.CurrentTurn;
+        byte ender = gs.CurrentPlayer;
         int stackFrom = gs.CommandStack.Count + 1;      // skip our own EndTurn
         events.Clear();
         GameManager.Client.SendCommand(cmd);
@@ -63,7 +64,13 @@ public static partial class Api
                 try { if (GameManager.Client.IsRecap) GameManager.Client.SkipRecap(); } catch { }
                 if (frames < 3) return null;
                 bool over = Over(g);
-                if (!over && !(Ready(out g) && g.CurrentTurn > startTurn)) return null;
+                if (!over && !(Ready(out g) && g.CurrentTurn > startTurn))
+                {
+                    // Pass & Play: the next seat (a person, or another model's session) may take a while; answer once
+                    // the turn has passed on.
+                    if (Seats.Count == 0 || frames < 30 || g == null || g.CurrentPlayer == ender) return null;
+                    return PJson.Write(new D { ["ok"] = true, ["phase"] = "busy", ["turn"] = (int)g.CurrentTurn });
+                }
                 var d = new D { ["ok"] = true, ["phase"] = over ? "game_over" : "my_turn", ["turn"] = (int)g.CurrentTurn, ["stateId"] = StateId(g) };
                 var ev = OpponentEvents(g, stackFrom);
                 ev.AddRange(DrainEvents());

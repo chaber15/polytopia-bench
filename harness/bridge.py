@@ -21,6 +21,8 @@ class BridgeError(Exception):
 
 
 class Bridge:
+    my_seat = 0   # Pass & Play: the seat this client plays (see seat())
+
     def __init__(self, base_url=DEFAULT_URL, timeout=10, long_timeout=150, session=None):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout            # status, state, actions, result
@@ -76,15 +78,26 @@ class Bridge:
         end = time.time() + max_s
         while True:
             st = self.status()
+            if self.my_seat and st["phase"] == "my_turn" and st.get("current") != self.my_seat:
+                st = {**st, "phase": "busy"}   # another model's seat
             if st["phase"] == "my_turn":
                 time.sleep(1)
                 again = self.status()
+                if self.my_seat and again.get("current") != self.my_seat:
+                    again = {**again, "phase": "busy"}
                 if again["phase"] == "my_turn" or time.time() > end:
                     return again
                 st = again
             if st["phase"] not in ("busy", "loading", "my_turn") or time.time() > end:
                 return st
             time.sleep(poll)
+
+    def seat(self, seat, start_delay=None):
+        """Pass & Play: this client plays `seat` (a player number). The bridge reports my_turn on any model seat, so
+        wait_ready also checks that the current player is ours (another model may play another seat)."""
+        self.my_seat = seat
+        body = {"seat": seat} if start_delay is None else {"seat": seat, "startDelay": start_delay}
+        return self._call("POST", "/seat", body=body)
 
     def recover(self):
         """The game sometimes hangs 'busy' in a CPU turn (seen after resuming a swapped-in save); reloading the

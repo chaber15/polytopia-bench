@@ -10,6 +10,9 @@ namespace PolyBridge;
 public static partial class Api
 {
     public static bool Loading;                       // /newgame issued, not yet ready
+    // Pass & Play: the seats models play (empty = off, every local seat is ours). Set with POST /seat; /quit clears them.
+    public static readonly HashSet<byte> Seats = new();
+    public static bool IsSeat(byte id) => Seats.Contains(id);
     static readonly List<string> events = new();      // popup dismissals etc., drained into the next response
 
     public static List<string> DrainEvents()
@@ -45,6 +48,7 @@ public static partial class Api
         try
         {
             if (!GameManager.Client.IsPlayerLocal(gs.CurrentPlayer) || GameManager.Client.IsRecap) return false;
+            if (Seats.Count > 0 && !IsSeat(gs.CurrentPlayer)) return false;
             if (Processing()) return false;
             if (PopupUp() && !HasTrigger(gs)) return false;
             return true;
@@ -68,6 +72,7 @@ public static partial class Api
 
     public static void Tick()
     {
+        if (Seats.Count > 0 && !SeatTick()) return;
         if (!PopupUp()) return;
         var gs = Gs();
         if (gs == null || Over(gs)) return;
@@ -112,6 +117,64 @@ public static partial class Api
         catch (Exception e) { Plugin.L.LogWarning("popup dismiss: " + e.Message); }
     }
 
+    static float seatCheck, overlaySince = -1;
+    public static float StartDelay = 3f;   // seconds the "Next up" screen stays up before the model presses START
+
+    // Pass & Play with model seats. The screen belongs to a model seat from its "Next up" screen on (LocalPlayer
+    // switches there; CurrentPlayer only after the recap and the first-turn welcome popup): press START, skip the
+    // recap, and let Tick dismiss its popups. Returns false on a human's seat, so their screen is left alone.
+    static bool SeatTick()
+    {
+        var gs = Gs();
+        if (gs == null) return true;
+        try
+        {
+            byte local = GameManager.LocalPlayer?.Id ?? 0;
+            if (!IsSeat(local) && !IsSeat(gs.CurrentPlayer)) return false;
+        }
+        catch { return false; }
+        if (UnityEngine.Time.unscaledTime - seatCheck < 0.5f) return true;
+        seatCheck = UnityEngine.Time.unscaledTime;
+        try { if (GameManager.Client.IsRecap) { GameManager.Client.SkipRecap(); events.Add("skipped recap"); } } catch { }
+        try
+        {
+            UIButtonBase start = null;
+            var all = UnityEngine.Object.FindObjectsOfType(Il2CppInterop.Runtime.Il2CppType.Of<UIButtonBase>());
+            foreach (var o in all)
+            {
+                var b = o.Cast<UIButtonBase>();
+                if (!b.isActiveAndEnabled || b.name != "TextButton") continue;
+                var parent = b.transform.parent?.parent;
+                if (parent != null && parent.name == "HotSeatOverlay") { start = b; break; }
+            }
+            // Leave the "Next up" screen up for a moment, so the person who just played can look away first.
+            if (start == null) overlaySince = -1;
+            else if (overlaySince < 0) overlaySince = UnityEngine.Time.unscaledTime;
+            else if (UnityEngine.Time.unscaledTime - overlaySince >= StartDelay)
+            {
+                overlaySince = -1;
+                start.OnButtonClicked();
+                events.Add("pressed START"); Plugin.L.LogInfo("pressed hot seat START");
+            }
+        }
+        catch (Exception e) { Plugin.L.LogWarning("seat start: " + e.Message); }
+        return true;
+    }
+
+    // {"seat": n} adds a model seat ({"seat": 0} clears them all); optional "startDelay" in seconds (default 3).
+    static Reply SetSeat(Request r)
+    {
+        int seat = 0;
+        if (r.HasBody && r.Body.TryGetProperty("seat", out var v) && v.ValueKind == System.Text.Json.JsonValueKind.Number) seat = v.GetInt32();
+        if (seat < 0 || seat > 254) return Reply.Err("bad seat " + seat, 400);
+        if (r.HasBody && r.Body.TryGetProperty("startDelay", out var sd) && sd.ValueKind == System.Text.Json.JsonValueKind.Number)
+            StartDelay = (float)Math.Max(0, sd.GetDouble());
+        if (seat == 0) Seats.Clear(); else Seats.Add((byte)seat);
+        Plugin.L.LogInfo("model seats " + string.Join(",", Seats));
+        var list = new List<object>(); foreach (var x in Seats) list.Add((int)x);
+        return Reply.Ok(new Dictionary<string, object> { ["ok"] = true, ["seats"] = list, ["startDelay"] = StartDelay });
+    }
+
     public static Reply Handle(Request r)
     {
         switch (r.Method + " " + r.Path)
@@ -120,6 +183,7 @@ public static partial class Api
             case "POST /newgame": return NewGame(r);
             case "POST /resume": return Resume();
             case "POST /quit": return Quit();
+            case "POST /seat": return SetSeat(r);
             case "GET /state": return State(r);
             case "GET /actions": return Actions();
             case "POST /act": return Act(r);
@@ -139,6 +203,15 @@ public static partial class Api
         if (gs != null)
         {
             d["turn"] = (int)gs.CurrentTurn;
+            try { d["current"] = (int)gs.CurrentPlayer; } catch { }
+            if (Seats.Count > 0) { var list = new List<object>(); foreach (var x in Seats) list.Add((int)x); d["seats"] = list; }
+            try
+            {
+                int n = 0;
+                for (int i = 0; i < gs.PlayerStates.Count; i++) { var id = gs.PlayerStates[i].Id; if (id != 0 && id != 255) n++; }
+                d["players"] = n;
+            }
+            catch { }
             int lim = TurnLimit(gs);
             if (lim > 0) d["maxTurns"] = lim;
         }
@@ -242,6 +315,7 @@ public static partial class Api
 
     static Reply Quit()
     {
+        Seats.Clear();
         var gs = Gs();
         if (gs == null && !Loading) return Reply.Ok(new Dictionary<string, object> { ["ok"] = true, ["phase"] = "menu" });
         QuitToMenu();

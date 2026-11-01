@@ -52,6 +52,24 @@ def system_prompt_file(src, dst, compact=False, reference=REFERENCE):
     return dst
 
 
+def fill_game(path, args, state, status):
+    """Pass & Play prompt: describe this game ({{GAME}}) from what the bridge reports, once our first turn is up."""
+    text = Path(path).read_text(encoding="utf-8")
+    if "{{GAME}}" not in text:
+        return
+    m = state.get("map") or {}
+    turns = state.get("maxTurns") or status.get("maxTurns")
+    if args.mode.lower() == "perfection":
+        goal = (f"{turns} turns. Goal: the highest final score at the end of turn {turns} (finishing first is the win)."
+                if turns else "Goal: the highest score.")
+    else:
+        goal = ("no turn limit. Goal: win by eliminating every other player (capture or destroy all their cities); "
+                "score does not decide the winner.")
+    game = (f"{args.mode} mode, {status.get('players', '?')} players, a {m.get('w', '?')}x{m.get('h', '?')} map, {goal} "
+            f"You are player {args.seat} ({state['me'].get('tribe')}).")
+    Path(path).write_text(text.replace("{{GAME}}", game), encoding="utf-8")
+
+
 CORE_TRIBES = ["Xinxi", "Imperius", "Bardur", "Oumaji"]
 TRIBES_SHEET = HERE.parent / "reference" / "tribes.md"   # written by reference/gen_reference.py
 
@@ -419,6 +437,15 @@ def play(args, bridge=None, log=None):
     events = []
     if getattr(args, "plan_file", None):
         plan = Path(args.plan_file).read_text(encoding="utf-8")
+    seat = getattr(args, "seat", 0)
+    if seat:
+        # Pass & Play: the humans started the game; play only our seat and wait as long as they take
+        bridge.seat(seat, getattr(args, "start_delay", None))
+        print(f"pass & play: playing seat {seat}", flush=True)
+    if seat and bridge.status()["phase"] == "menu":
+        print("waiting for the Pass & Play game to start in Polytopia", flush=True)
+        while bridge.status()["phase"] in ("menu", "loading"):
+            time.sleep(3)
     if bridge.status()["phase"] == "menu" and getattr(args, "resume", False):
         print("resume:", json.dumps(bridge.resume()), flush=True)
     elif bridge.status()["phase"] == "menu":
@@ -435,7 +462,7 @@ def play(args, bridge=None, log=None):
     print(f"log: {log.path}", flush=True)
     played = 0
     while played < args.turns:
-        status, state, actions = bridge.turn_view()
+        status, state, actions = (bridge.turn_view(stuck_s=6 * 3600, recoveries=0) if seat else bridge.turn_view())
         if status["phase"] == "game_over":
             break
         if getattr(args, "until_turn", 0) and status.get("turn", 0) >= args.until_turn:
@@ -450,6 +477,8 @@ def play(args, bridge=None, log=None):
             print(f"stopping: game not on our turn (phase {status['phase']})", flush=True)
             break
         turn = state["turn"]
+        if seat:
+            fill_game(args.system_prompt, args, state, status)
         log.turn_start(turn, state)
         prompt = turn_prompt(state, actions, turn, state.get("maxTurns", args.turns), plan, events)
         log.prompt(turn, prompt)
@@ -460,7 +489,7 @@ def play(args, bridge=None, log=None):
             write_mcp_config(turn_dir / "mcp.json", turn_dir, args.url, args.max_calls, args.max_errors,
                              getattr(args, "compact", False), getattr(args, "plan_chars", 1500))
             if attempt:  # state may have changed in the failed attempt
-                _, state, actions = bridge.turn_view()
+                _, state, actions = bridge.turn_view(recoveries=0) if seat else bridge.turn_view()
                 if state is None:
                     break
                 prompt = turn_prompt(state, actions, turn, state.get("maxTurns", args.turns), plan, events)
@@ -547,6 +576,10 @@ def main(argv=None):
     p.add_argument("--pick-context", default="Perfection mode, 30 turns, a Small 14x14 Lakes map, you vs 2 Hard CPU tribes; "
                    "the goal is the highest score at the end of turn 30.", help="game description shown when picking a tribe")
     p.add_argument("--plan-chars", type=int, default=1500, help="longest plan/notes carried to the next turn")
+    p.add_argument("--seat", type=int, default=0,
+                   help="Pass & Play: join the game already started in Polytopia and play only this seat (player number)")
+    p.add_argument("--start-delay", type=float,
+                   help="Pass & Play: seconds the model's \"Next up\" screen stays up before it presses START (default 3)")
     p.add_argument("--resume", action="store_true", help="from the menu, continue the single-player autosave")
     p.add_argument("--plan-file", help="plan text to show on the first turn (e.g. the last plan before a resume)")
     p.add_argument("--until-turn", type=int, default=0, help="stop once the game reaches this turn number")

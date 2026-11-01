@@ -171,3 +171,36 @@ def test_turn_view_reloads_when_stuck_busy(monkeypatch):
     b = Stuck()
     st, state, _ = b.turn_view()
     assert b.reloaded and st["phase"] == "my_turn" and state == {"turn": 23}
+
+
+def test_seat_client_waits_for_its_own_seat(monkeypatch):
+    import time
+    from bridge import Bridge
+    monkeypatch.setattr(time, "sleep", lambda s: None)
+
+    class TwoSeats(Bridge):
+        def __init__(self):
+            # seat 1's model is up, then a person (busy), then ours
+            self.statuses = iter([("my_turn", 1), ("my_turn", 1), ("busy", 3), ("my_turn", 2), ("my_turn", 2)])
+            self.seen = 0
+
+        def status(self):
+            self.seen += 1
+            phase, cur = next(self.statuses)
+            return {"phase": phase, "turn": 4, "current": cur}
+
+    b = TwoSeats()
+    b.my_seat = 2
+    assert b.wait_ready()["current"] == 2 and b.seen == 5
+
+
+def test_pass_and_play_prompt_describes_the_game(tmp_path):
+    import types
+    import play
+    p = tmp_path / "system.md"
+    p.write_text("Pass & Play game: {{GAME}} Opponents are the other seats.")
+    args = types.SimpleNamespace(mode="Domination", seat=3)
+    play.fill_game(p, args, {"map": {"w": 11, "h": 11}, "me": {"tribe": "Bardur"}}, {"players": 3})
+    text = p.read_text()
+    assert "Domination mode, 3 players, a 11x11 map" in text and "eliminating every other player" in text
+    assert "You are player 3 (Bardur)" in text and "{{GAME}}" not in text

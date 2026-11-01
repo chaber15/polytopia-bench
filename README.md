@@ -24,9 +24,9 @@ The question is long-term judgment: Polytopia rewards investing early (techs, ci
 | Grok 4.7 | Cursor | 3 | 38% | 12,515 | 2nd, 2nd, 1st |
 | GPT-6.1 Terra | Codex | 3 | 32% | 9,296 | 3rd (elim.), 1st, 2nd |
 | GPT-6 Luna | Codex | 1 | 27% | 6,160 | 3rd |
-| Muse Wonder 1.0 | Cursor | 1 | 26% | 7,480 | 3rd (eliminated) |
 | Claude Haiku 5.5 | Claude Code | 3 | 26% | 5,267 | 1st, 3rd (elim.), 3rd (elim.) |
 | Claude Sonnet 5.5 | Claude Code | 3 | 25% | 6,173 | 3rd (elim.), 1st, 3rd (elim.) |
+| Muse Wonder 1.0 | Cursor / OpenRouter | 3 | 20% | 5,725 | 3rd (elim.), 3rd (elim.), 2nd |
 
 Models with fewer than three games have provisional rankings; even three-game averages can vary with the map draw. The current leaderboard excludes the older GPT-5.6 generation; its raw game logs are retained.
 

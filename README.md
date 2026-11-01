@@ -23,7 +23,7 @@ The question is long-term judgment: Polytopia rewards investing early (techs, ci
 | GPT-6.1 Sol | Codex | 3 | 39% | 11,891 | 1st, 1st, 3rd (elim.) |
 | Grok 4.7 | Cursor | 3 | 38% | 12,515 | 2nd, 2nd, 1st |
 | GPT-6.1 Terra | Codex | 3 | 32% | 9,296 | 3rd (elim.), 1st, 2nd |
-| GPT-6 Luna | Codex | 1 | 27% | 6,160 | 3rd |
+| GPT-6 Luna | Codex | 3 | 30% | 7,501 | 3rd, 1st, 2nd |
 | Claude Haiku 5.5 | Claude Code | 3 | 26% | 5,267 | 1st, 3rd (elim.), 3rd (elim.) |
 | Claude Sonnet 5.5 | Claude Code | 3 | 25% | 6,173 | 3rd (elim.), 1st, 3rd (elim.) |
 | Muse Wonder 1.0 | Cursor / OpenRouter | 3 | 20% | 5,725 | 3rd (elim.), 3rd (elim.), 2nd |
@@ -41,32 +41,20 @@ Polytopia (Steam) ── PolyBridge plugin (C#, BepInEx 6 IL2CPP) ── HTTP lo
 
 - `PolyBridge/` — the plugin. It only calls the game's own functions for legal moves, prices and commands. Contract: `spec/API.md`.
 - `harness/` — `play.py` runs a game; `mcp_poly.py` gives the model `get_actions`, `act`, `write_plan` and `end_turn` (compact mode batches several actions per `act` call; the state comes with the turn prompt). Every turn's tool calls, the model's notes and token use are logged under `harness/logs/`.
-- `prompts/` — system prompts per mode. `{{REFERENCE}}` is filled in at game start from `reference/reference.md`, which you generate from your own copy of the game (below).
-- `docs/` — notes on the game's internals and mechanics found while building this.
+- `prompts/` — system prompts per mode. `{{REFERENCE}}` is filled in at game start from `reference/reference.md`, which you generate from your own copy of the game ([setup guide](docs/SETUP.md#3-generate-the-game-reference)).
+- `docs/` — the [setup guide](docs/SETUP.md) and notes from building the plugin.
+- `scripts/` — benchmark runners and Windows helpers; `scripts/dev/` holds one-off development checks.
 
 If a model session fails (provider outage, timeout), the harness never ends the turn for the model: it stops, and `--resume` continues the same turn from the game's autosave.
 
 ## Running it
 
-You need your own copy of the game (Steam, Windows) at build 2.17.3.16375. Paths default to a standard setup; override them with environment variables:
+You need your own copy of the game (Steam, Windows, build 2.17.3.16375). **[docs/SETUP.md](docs/SETUP.md)** covers everything step by step:
 
-| Variable | Default | Used by |
-|---|---|---|
-| `POLYTOPIA_DIR` | `C:\Program Files (x86)\Steam\steamapps\common\The Battle of Polytopia` | plugin build, `scripts/*.ps1`, `extract_gamelogic.py` |
-| `POLYBRIDGE_DIR` | `%LOCALAPPDATA%\PolyBridge` | the plugin's file channel (`cmd.txt`, `out.log`, `loc.tsv`) and `scripts/cmd.ps1` |
-| `POLY_PLAYER_DIR` | `%USERPROFILE%\polytopia-player` (Windows), `player/` (elsewhere) | empty working folder for the model's sessions |
-| `CLAUDE_EXE` | `%USERPROFILE%\.local\bin\claude.exe`, else `claude` on PATH | `scripts/game.ps1` |
-
-The PowerShell scripts find the repo from their own location (`scripts/paths.ps1`).
-
-1. **BepInEx:** install BepInEx 6.0.0-be.785 IL2CPP win-x64 (builds.bepinex.dev) into the game folder and launch the game once so it generates the interop DLLs.
-2. **Plugin:** build with the .NET 8 SDK (`dotnet build PolyBridge`) and copy `PolyBridge.dll` into `BepInEx\plugins` (`scripts/redeploy.ps1` does build, copy and relaunch).
-3. **Game reference** (the game's own text, so it is not in this repo):
-   - `pip install UnityPy` and run `python reference/extract_gamelogic.py` → `reference/GameLogicData28.json`.
-   - With the game running, `scripts/cmd.ps1 locdump` writes `loc.tsv` into `%LOCALAPPDATA%\PolyBridge`; copy it to `reference/loc-en.tsv`.
-   - `python scripts/apply_reference.py` → `reference/reference.md`, `units.json`, `tribes.md`.
-4. **Harness:** `python -m venv harness/.venv`, `harness/.venv/Scripts/pip install -r harness/requirements.txt`, then `pytest` in `harness/`.
-5. **Play** (from `harness/`), the headline settings:
+1. Install BepInEx 6 (IL2CPP) and build the plugin with the .NET 8 SDK.
+2. Generate the game reference from your copy of the game (the game's text isn't in this repo).
+3. Set up the Python harness and connect a model: Claude Code, Cursor CLI, Codex CLI, Antigravity or OpenRouter.
+4. Play a headline game, from the PC or from a second machine over an SSH tunnel:
 
    ```
    python -m play --driver claude --model opus --effort medium --mode Perfection --difficulty Hard --opponents 2 \
@@ -74,12 +62,14 @@ The PowerShell scripts find the repo from their own location (`scripts/paths.ps1
      --system-prompt ../prompts/system-perfection-multi.md
    ```
 
-   `--driver cursor --model <cursor model id>` uses the Cursor CLI (`agent`); `--driver codex --model <id> --effort <level>` uses the Codex CLI. Both can run on another machine with the port forwarded (`ssh -N -L 7777:localhost:7777 <pc>`); `scripts/bench-cursor.sh` and `scripts/bench-codex.sh` run headline games that way. `--driver antigravity --model gemini-3.8-flash --effort <low|medium|high>` plays Gemini through Antigravity's ACP server (the one T3 Code installs; `--agy` to point elsewhere): run `scripts/agy-home.sh` once to give the harness a copy of T3's Antigravity login, then `scripts/bench-antigravity.sh`. Antigravity reports only context size, so its token columns show context, not usage. `--driver openrouter --model <OpenRouter id, e.g. google/gemini-4-argon> --effort <level>` calls OpenRouter's API directly, with no agent CLI around the model: the rules are the system message and the game's tools are the only tools (key in `OPENROUTER_API_KEY`; `scripts/bench-openrouter.sh` reads `~/.polytopia-openrouter-key`). Running out of credit stops the game with the turn left open for `--resume`.
-
-**Pass & Play against the model:** start the harness with `--seat <player number>` (and `--mode`, `--system-prompt ../prompts/system-passplay.md`), then set up a Pass & Play game in Polytopia with the model in that seat. The harness waits at the menu, joins the game, and plays only its seat, waiting as long as the people take; any number of seats can be models, one harness each. On a model's "Next up" screen the plugin waits `--start-delay` seconds (default 3, so whoever just played can look away), then presses START, skips the recap and dismisses that seat's popups; people's screens are left alone. The prompt is filled in with the mode, player count, map size and the model's seat. The game must show on a real or Remote Desktop screen, and a Remote Desktop session must stay connected for the whole game: connecting or disconnecting while a game runs can freeze it.
+**Pass & Play against the model:** start the harness with `--seat <player number>` and `--system-prompt ../prompts/system-passplay.md`, then set up a local Pass & Play game with the model in that seat; it plays only its own turns, any tribe, any number of players. See [SETUP.md §9](docs/SETUP.md#9-pass--play-against-a-model).
 
 Offline only: single-player and local Pass & Play. Don't use this online or in ranked play.
 
 ## Not affiliated
 
 Not affiliated with or endorsed by Midjiwan. *The Battle of Polytopia* and its data and text belong to Midjiwan; this repo contains none of the game's files or text.
+
+## License
+
+The code in this repo is [MIT licensed](LICENSE). The license covers this repo only, not the game or anything generated from it.

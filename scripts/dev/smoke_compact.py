@@ -1,7 +1,7 @@
 """Compact mode against the live game: full list, a 2-step batch, then a bad id."""
 import sys, tempfile
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "harness"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "harness"))
 from bridge import Bridge
 from mcp_poly import PolyTools
 b = Bridge("http://localhost:7777")

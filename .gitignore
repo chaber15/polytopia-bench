@@ -21,3 +21,5 @@ CLAUDE.md
 TASKS.md
 tasks/
 .claude/
+# Local research notes (game internals), kept out of the public repo
+notes/

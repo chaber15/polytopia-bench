@@ -283,7 +283,7 @@ def run_cursor(prompt, args, turn_dir, timeout):
 
 
 # Antigravity has no one-shot CLI; it speaks ACP (Agent Client Protocol: JSON-RPC over stdio). Its server binary comes
-# with T3 Code. GEMINI_HOME holds the login (antigravity-acp/acp_token.json); scripts/agy-home.sh copies T3's into it.
+# with T3 Code (or pass --agy). GEMINI_HOME holds the login (antigravity-acp/acp_token.json); scripts/agy-home.sh copies T3 Code's into it.
 AGY_HOME = Path(os.environ.get("POLY_AGY_HOME") or Path.home() / ".polytopia-agy")
 
 

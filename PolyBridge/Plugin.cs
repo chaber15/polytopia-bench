@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace PolyBridge;
 
-[BepInPlugin("dev.caleb.polybridge", "PolyBridge", "0.1.0")]
+[BepInPlugin("polytopia-bench.polybridge", "PolyBridge", "0.1.0")]
 public class Plugin : BasePlugin
 {
     internal static ManualLogSource L;

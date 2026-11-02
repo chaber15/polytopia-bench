@@ -147,6 +147,18 @@ Register-ScheduledTask PolyShot -Principal $p -Action (New-ScheduledTaskAction -
 
 **Black screen?** If nobody is connected to the PC's desktop, for example after a Remote Desktop session is closed rather than signed out, Windows stops drawing it: the game window and screenshots go black, though the plugin keeps answering. To watch a game, sign in at the PC itself or stay connected over Remote Desktop, then restart the game inside that session. Connecting or disconnecting Remote Desktop while a game is running can freeze the game; if that happens, restart the game and continue with `--resume`. To record a game, use any screen recorder (e.g. the Xbox Game Bar, Win+Alt+R) in that session, or replay the log in `harness/viewer.html` afterwards.
 
+**Leaving a game running overnight.** `scripts\watch-game.ps1` keeps one game going until it ends and can record it. It runs `play.py` again on the live game when it stops (provider errors, timeouts), resumes from the autosave with the model's last notes when the game is back at the menu, waits out Claude usage limits, and restarts the game if it stops answering. With `-record` it records the desktop with ffmpeg (put any build with gdigrab under `tools\`) and finishes with a full-length `logs\rec\<name>.mkv` and a sped-up `<name>-fast.mp4`. Its own log is `logs\watch\<name>.log`.
+
+Run it from a scheduled task with an Interactive principal, started through `scripts\hidden.py` so no console window covers the game:
+
+```powershell
+$p = "C:\path\to\polytopia-bench"
+$a = New-ScheduledTaskAction -Execute "$p\harness\.venv\Scripts\pythonw.exe" -Argument "$p\scripts\hidden.py powershell.exe -ExecutionPolicy Bypass -File $p\run-mygame.ps1"
+Register-ScheduledTask PolyWatch -Action $a -Principal (New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive) -Trigger (New-ScheduledTaskTrigger -Once -At "2:30 AM")
+```
+
+where `run-mygame.ps1` calls `scripts\watch-game.ps1 -name mygame -record -playArgs "<play.py arguments>"`. For an unattended recording the desktop must stay drawn: instead of staying connected over Remote Desktop, move the session to the PC's own screen before the game starts (as an administrator: a task running `tscon <session id> /dest:console` as SYSTEM). This leaves the desktop signed in on the PC's screen.
+
 ## 9. Pass & Play against a model
 
 You can play local Pass & Play games with any number of people and models on one screen.

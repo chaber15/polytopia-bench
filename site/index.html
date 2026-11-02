@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Polytopia Bench: frontier models vs. the Polytopia CPU</title>
+<meta name="description" content="10 frontier language models play the real Battle of Polytopia against two Hard CPU tribes. Leaderboard, every game, and the final maps.">
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface: #fcfcfb; --surface-2: #f2f1ed; --line: #e2e0da; --track: #ebe9e3;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #75746f;
+    --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --accent: #b07d00;
+    --gold: #f2c14e; --silver: #c9d0da; --bronze: #cf8f52; --hero: radial-gradient(ellipse at 75% 40%, #dfeaf8 0%, var(--surface) 60%);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface: #14203a; --surface-2: #1b2a4a; --line: #2c3d63; --track: #1f2f52;
+      --text-primary: #f3f1ea; --text-secondary: #c2c8d6; --text-muted: #8e99b3;
+      --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --accent: #f2c14e;
+      --hero: radial-gradient(ellipse at 75% 40%, #24406f 0%, var(--surface) 62%);
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface: #14203a; --surface-2: #1b2a4a; --line: #2c3d63; --track: #1f2f52;
+    --text-primary: #f3f1ea; --text-secondary: #c2c8d6; --text-muted: #8e99b3;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --accent: #f2c14e;
+    --hero: radial-gradient(ellipse at 75% 40%, #24406f 0%, var(--surface) 62%);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .viz-root { background: var(--surface); color: var(--text-primary); min-height: 100vh;
+              font-family: "Avenir Next", "Nunito", "Segoe UI", system-ui, sans-serif; font-size: 16px; line-height: 1.5; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  a { color: var(--series-1); }
+  button { font: inherit; color: inherit; }
+
+  .hero { background: var(--hero); overflow: hidden; }
+  .hero .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 16px; align-items: center; padding-top: 40px; padding-bottom: 28px; }
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-size: clamp(36px, 5.2vw, 56px); line-height: 1.04; font-weight: 800; margin: 10px 0 16px; }
+  .lede { font-size: 19px; color: var(--text-secondary); margin: 0 0 18px; }
+  .lede b { color: var(--text-primary); font-weight: 600; }
+  .links { display: flex; gap: 18px; flex-wrap: wrap; font-weight: 600; font-size: 15px; }
+  .hero-map svg { width: 100%; height: auto; display: block; filter: drop-shadow(0 14px 22px rgba(0,0,0,.22)); }
+  .hero-cap { font-size: 13px; color: var(--text-muted); text-align: right; margin-top: 4px; }
+  .theme { position: absolute; top: 14px; right: 18px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 12px; font-size: 13px; cursor: pointer; }
+
+  section { padding: 30px 0 8px; }
+  h2 { font-size: 26px; margin: 0 0 2px; }
+  .sub { color: var(--text-muted); margin: 0 0 14px; font-size: 15px; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+  .filters button { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 4px 14px; font-size: 14px; cursor: pointer; color: var(--text-secondary); }
+  .filters button[aria-pressed="true"] { background: var(--text-primary); color: var(--surface); border-color: var(--text-primary); }
+
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; padding: 0 10px 8px 0; white-space: nowrap; }
+  th button { border: 0; background: none; padding: 0; cursor: pointer; text-transform: inherit; letter-spacing: inherit; font-weight: inherit; color: inherit; }
+  th button::after { content: " ↕"; opacity: .35; }
+  th[aria-sort="ascending"] button::after { content: " ↑"; opacity: 1; }
+  th[aria-sort="descending"] button::after { content: " ↓"; opacity: 1; }
+  th.r, td.r { text-align: right; }
+  td { border-top: 1px solid var(--line); padding: 9px 10px 9px 0; vertical-align: middle; white-space: nowrap; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover td { background: var(--surface-2); }
+  tbody tr.sel td { background: var(--surface-2); }
+  td.rank { color: var(--text-muted); font-weight: 600; width: 34px; }
+  td.model { font-weight: 600; }
+  td.model small { display: block; color: var(--text-muted); font-weight: 500; font-size: 12px; }
+  td.big { font-weight: 700; font-size: 18px; }
+  td.barcell { width: 34%; min-width: 220px; }
+  svg.bar { display: block; width: 100%; height: 28px; overflow: visible; }
+  svg.bar .dot { cursor: default; }
+  .chip { display: inline-flex; width: 24px; height: 24px; border-radius: 50%; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; margin-left: 4px; color: #1c2233; }
+  .p1 { background: var(--gold); } .p2 { background: var(--silver); } .p3 { background: var(--bronze); }
+  .pe { border: 2px solid var(--text-muted); color: var(--text-muted); font-size: 12px; }
+  .legend { display: flex; gap: 22px; flex-wrap: wrap; font-size: 13px; color: var(--text-muted); margin-top: 10px; align-items: center; }
+  .legend i { display: inline-block; vertical-align: middle; margin-right: 6px; }
+  .note { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+  .card { background: var(--surface-2); border-radius: 14px; padding: 14px 16px 16px; position: relative; cursor: pointer; border: 2px solid transparent; text-align: left; }
+  .card:hover, .card:focus-visible { border-color: var(--series-1); }
+  .card .badge { font-size: 13px; font-weight: 700; color: var(--accent); }
+  .card .big { position: absolute; top: 8px; right: 16px; font-size: 24px; font-weight: 800; }
+  .card svg, .card img.shot { display: block; width: 100%; height: auto; margin: 8px 0 4px; }
+  .card .who { font-weight: 700; font-size: 17px; }
+  .card .what { font-size: 13px; color: var(--text-secondary); }
+
+  .viewer { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 24px; background: var(--surface-2); border-radius: 16px; padding: 20px; margin-top: 16px; }
+  .viewer h3 { margin: 0; font-size: 20px; }
+  .viewer .facts { color: var(--text-secondary); font-size: 14px; margin: 2px 0 10px; }
+  .viewer .map svg, .viewer .map img.shot { display: block; width: 100%; height: auto; }
+  .tribes { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); }
+  .tribes i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+  .chart-title { font-size: 14px; font-weight: 600; margin: 4px 0 0; }
+
+  .method { columns: 2 320px; column-gap: 32px; color: var(--text-secondary); font-size: 15px; }
+  .method p { margin: 0 0 12px; break-inside: avoid; }
+  .method b { color: var(--text-primary); }
+  footer { color: var(--text-muted); font-size: 13px; padding: 24px 0 40px; border-top: 1px solid var(--line); margin-top: 26px; }
+
+  #tip { position: fixed; pointer-events: none; z-index: 10; background: var(--surface); color: var(--text-primary); border: 1px solid var(--line);
+         border-radius: 8px; padding: 8px 10px; font-size: 13px; box-shadow: 0 6px 18px rgba(0,0,0,.18); display: none; min-width: 150px; }
+  #tip strong { font-size: 15px; }
+  #tip .row { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+  #tip .key { display: inline-block; width: 14px; height: 0; border-top: 2px solid; margin-right: 6px; vertical-align: middle; }
+  #tip .muted { color: var(--text-muted); }
+
+  @media (max-width: 760px) {
+    .hero .wrap, .viewer { grid-template-columns: 1fr; }
+    .hero-map { order: -1; }
+  }
+</style>
+</head>
+<body>
+<div class="viz-root">
+<header class="hero" style="position:relative">
+  <button class="theme" id="theme" type="button">Theme</button>
+  <div class="wrap">
+    <div>
+      <div class="kicker">Polytopia Bench · November 2026</div>
+      <h1>Can AI out-plan the Polytopia CPU?</h1>
+      <p class="lede"><b>10 frontier models</b> each played <b>3 full games</b> of the real <i>Battle of Polytopia</i> against two <b>Hard</b> CPU tribes. Most points after 30 turns wins.</p>
+      <div class="links"><a href="#leaderboard">Leaderboard</a><a href="#games">All 30 games</a><a href="#method">How it works</a><a href="https://github.com/chaber15/polytopia-bench">Code on GitHub</a></div>
+    </div>
+    <div class="hero-map"><div id="hero-map"></div></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="leaderboard">
+    <h2>Leaderboard</h2>
+    <p class="sub">Share of all three players' final points, averaged over 3 games (33% is an even split). Click a column to sort, a row to see that model's games.</p>
+    <div class="filters" id="lab-filter" role="group" aria-label="Filter by lab"></div>
+    <div class="scroll"><table id="lb"></table></div>
+    <div class="legend">
+      <span><i style="width:20px;height:10px;border-radius:0 3px 3px 0;background:var(--series-1)"></i>Average share</span>
+      <span><i style="width:10px;height:10px;border-radius:50%;background:var(--text-primary)"></i>One game (hover for details)</span>
+      <span><i style="height:14px;border-left:2px dashed var(--text-muted)"></i>Even split (33%)</span>
+      <span><span class="chip p1" style="margin:0 2px 0 0">1</span><span class="chip p2" style="margin:0 2px">2</span><span class="chip p3" style="margin:0 6px 0 2px">3</span>Place in each game</span>
+      <span><span class="chip pe" style="margin:0 6px 0 0">✕</span>Eliminated (counts as 3rd)</span>
+    </div>
+    <p class="note">Claude Sonnet 5.5 and Claude Haiku 5.5 are tied at 24.9% to one decimal.</p>
+  </section>
+
+  <section id="top">
+    <h2>Top three games</h2>
+    <p class="sub">The single games with the biggest share of points. Click one to open it below.</p>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section id="games">
+    <h2>All 30 games</h2>
+    <p class="sub">Every headline game. Click a game to see its final map and the score race, turn by turn.</p>
+    <div class="viewer" id="viewer" aria-live="polite">
+      <div>
+        <h3 id="v-title"></h3>
+        <div class="facts" id="v-facts"></div>
+        <div class="map" id="v-map"></div>
+        <div class="tribes" id="v-tribes"></div>
+      </div>
+      <div>
+        <p class="chart-title">In-game score at the start of each turn</p>
+        <div id="v-chart"></div>
+        <p class="note" id="v-note"></p>
+      </div>
+    </div>
+    <div class="scroll" style="margin-top:18px"><table id="gt"></table></div>
+  </section>
+
+  <section id="method">
+    <h2>How it works</h2>
+    <div class="method">
+      <p><b>The real game.</b> A small plugin inside the Steam version of <i>The Battle of Polytopia</i> exposes the game state and every legal action over a local API. The game itself decides what is legal, how battles go and who wins; nothing is simulated.</p>
+      <p><b>The setup.</b> Perfection mode (highest score after 30 turns), Small 14×14 Lakes map, against 2 Hard CPU tribes. The model picks one of the four core tribes after reading the game's own descriptions; the CPUs are drawn from the other three.</p>
+      <p><b>Each turn.</b> A fresh model session gets the rules, the current state (fog of war respected), the legal actions as tools, and a note of up to 400 words it wrote to itself last turn. That note is its only memory. Every model runs at medium reasoning effort.</p>
+      <p><b>The score.</b> A model's share of all three players' final points, averaged over its 3 games. If the model is eliminated, the game ends there and the share uses the scores at that moment. Three games per model is a small sample, and maps vary, so treat close rankings as ties.</p>
+      <p><b>Why Polytopia?</b> It rewards investing early (techs, cities, roads) over grabbing points now, which makes it a test of long-term judgment, and a 30-turn game is short enough to run on a subscription.</p>
+      <p><b>Reproduce it.</b> Code, prompts and a setup guide are on <a href="https://github.com/chaber15/polytopia-bench">GitHub</a> (MIT). You need your own copy of the game; none of the game's files or text are included. The maps on this page are drawn from the game logs, not taken from the game.</p>
+    </div>
+  </section>
+
+  <footer>Not affiliated with or endorsed by Midjiwan. <i>The Battle of Polytopia</i> and its art (including the in-game screenshots) belong to Midjiwan.</footer>
+</main>
+<div id="tip" role="tooltip"></div>
+</div>
+
+<script src="data.js"></script>
+<script src="polymap.js"></script>
+<script src="diorama.js"></script>
+<script>
+const M = BENCH.models;
+const pct = (v, d = 0) => (v * 100).toFixed(d) + "%";
+const num = v => Math.round(v).toLocaleString("en-US");
+const tribeName = t => t === "Xinxi" ? "Xin-xi" : t;
+const placeText = g => g.elim ? `eliminated on turn ${g.endTurn}` : ["", "1st", "2nd", "3rd"][g.place];
+const chip = g => g.elim ? '<span class="chip pe" aria-label="eliminated">✕</span>' : `<span class="chip p${g.place}" aria-label="place ${g.place}">${g.place}</span>`;
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+// ranks: ties at whole-percent precision share a rank
+M.forEach((m, i) => {
+  m.rank = i && Math.round(m.share * 100) === Math.round(M[i - 1].share * 100) ? M[i - 1].rank : i + 1;
+  m.wins = m.games.filter(g => !g.elim && g.place === 1).length;
+  m.elims = m.games.filter(g => g.elim).length;
+  m.best = Math.max(...m.games.map(g => g.share));
+  m.games.forEach((g, i) => { g.model = m.model; g.lab = m.lab; g.n = i + 1; });
+});
+const GAMES = M.flatMap(m => m.games);
+let selected = [...GAMES].sort((a, b) => b.share - a.share)[0];
+let lab = "All";
+
+// theme toggle: stamps data-theme so it wins over the OS setting both ways
+const themeBtn = document.getElementById("theme");
+const isDark = () => document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+const setThemeLabel = () => themeBtn.textContent = isDark() ? "☀ Light" : "☾ Dark";
+themeBtn.onclick = () => { document.documentElement.dataset.theme = isDark() ? "light" : "dark"; setThemeLabel(); };
+setThemeLabel();
+
+// tooltip
+const tip = document.getElementById("tip");
+function showTip(e, build) {
+  tip.replaceChildren(); build(tip); tip.style.display = "block";
+  const r = tip.getBoundingClientRect(), x = Math.min(e.clientX + 14, innerWidth - r.width - 8), y = e.clientY + 16 + r.height > innerHeight ? e.clientY - r.height - 12 : e.clientY + 16;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const hideTip = () => tip.style.display = "none";
+function gameTip(g) {
+  return t => {
+    t.append(el("strong", null, pct(g.share)), el("div", null, `${g.model}, game ${g.n}`),
+      el("div", "muted", `${tribeName(g.tribe)} · ${num(g.score)} points · ${placeText(g)}`));
+  };
+}
+
+// sortable table helper
+function sortable(table, cols, rows, initial, onRow) {
+  let key = initial.key, dir = initial.dir;
+  const thead = table.createTHead(), tbody = table.createTBody(), hr = thead.insertRow();
+  cols.forEach(c => {
+    const th = el("th", c.right ? "r" : "");
+    if (c.sort) { const b = el("button", null, c.label); b.type = "button"; b.onclick = () => { dir = key === c.key && dir === "descending" ? "ascending" : key === c.key ? "descending" : (c.first || "descending"); key = c.key; draw(); }; th.append(b); }
+    else th.textContent = c.label;
+    th.dataset.key = c.key; hr.append(th);
+  });
+  function draw() {
+    const c = cols.find(c => c.key === key);
+    const list = rows().sort((a, b) => { const x = c.sort(a), y = c.sort(b); return (x < y ? -1 : x > y ? 1 : 0) * (dir === "ascending" ? 1 : -1); });
+    [...hr.cells].forEach(th => th.dataset.key === key ? th.setAttribute("aria-sort", dir) : th.removeAttribute("aria-sort"));
+    tbody.replaceChildren();
+    for (const r of list) {
+      const tr = tbody.insertRow();
+      cols.forEach(c => { const td = tr.insertCell(); td.className = (c.cls || "") + (c.right ? " r" : ""); c.cell(td, r); });
+      tr.tabIndex = 0; tr.onclick = () => onRow(r); tr.onkeydown = e => { if (e.key === "Enter") onRow(r); };
+      if (r === selected || r.games?.includes(selected)) tr.classList.add("sel");
+    }
+  }
+  return draw;
+}
+
+// leaderboard
+const LAB_ORDER = ["All", ...[...new Set(M.map(m => m.lab))].sort()];
+const lf = document.getElementById("lab-filter");
+LAB_ORDER.forEach(l => {
+  const b = el("button", null, l === "All" ? "All labs" : l); b.type = "button"; b.setAttribute("aria-pressed", l === lab);
+  b.onclick = () => { lab = l; [...lf.children].forEach(x => x.setAttribute("aria-pressed", x === b)); drawLb(); drawGt(); };
+  lf.append(b);
+});
+function barCell(td, m) {
+  const ns = "http://www.w3.org/2000/svg", svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("class", "bar"); svg.setAttribute("aria-label", `${pct(m.share)} average`);
+  const x = v => (v * 100).toFixed(2) + "%";
+  svg.innerHTML = `<rect x="0" y="6" width="100%" height="16" rx="4" fill="var(--track)"/><rect x="0" y="6" width="${x(m.share)}" height="16" rx="4" fill="var(--series-1)"/>
+    <line x1="33.33%" x2="33.33%" y1="0" y2="28" stroke="var(--text-muted)" stroke-width="1.5" stroke-dasharray="3 3"/>`;
+  m.games.forEach(g => {
+    const hit = document.createElementNS(ns, "circle");
+    hit.setAttribute("cx", x(g.share)); hit.setAttribute("cy", 14); hit.setAttribute("r", 11); hit.setAttribute("fill", "transparent");
+    const dot = document.createElementNS(ns, "circle");
+    dot.setAttribute("cx", x(g.share)); dot.setAttribute("cy", 14); dot.setAttribute("r", 5.5); dot.setAttribute("class", "dot");
+    dot.setAttribute("fill", "var(--text-primary)"); dot.setAttribute("stroke", "var(--surface)"); dot.setAttribute("stroke-width", 2);
+    for (const t of [hit, dot]) {
+      t.addEventListener("mousemove", e => showTip(e, gameTip(g))); t.addEventListener("mouseleave", hideTip);
+      t.addEventListener("click", e => { e.stopPropagation(); select(g); });
+    }
+    svg.append(dot, hit);
+  });
+  td.append(svg);
+}
+const drawLb = sortable(document.getElementById("lb"), [
+  { key: "rank", label: "#", cls: "rank", sort: m => m.rank, first: "ascending", cell: (td, m) => td.textContent = m.rank },
+  { key: "model", label: "Model", cls: "model", sort: m => m.model.toLowerCase(), first: "ascending", cell: (td, m) => { td.textContent = m.model; td.append(el("small", null, `${m.lab} · via ${m.via}`)); } },
+  { key: "bar", label: "Share of points", cls: "barcell", cell: barCell },
+  { key: "share", label: "Share", right: true, cls: "big", sort: m => m.share, cell: (td, m) => td.textContent = pct(m.share, 1) },
+  { key: "points", label: "Avg points", right: true, sort: m => m.points, cell: (td, m) => td.textContent = num(m.points) },
+  { key: "best", label: "Best game", right: true, sort: m => m.best, cell: (td, m) => td.textContent = pct(m.best) },
+  { key: "wins", label: "Wins", right: true, sort: m => m.wins, cell: (td, m) => td.textContent = m.wins },
+  { key: "elims", label: "Elim.", right: true, sort: m => m.elims, cell: (td, m) => td.textContent = m.elims },
+  { key: "games", label: "Games", right: true, cell: (td, m) => td.innerHTML = m.games.map(chip).join("") },
+], () => M.filter(m => lab === "All" || m.lab === lab), { key: "rank", dir: "ascending" }, m => select(m.games.reduce((a, b) => b.share > a.share ? b : a), true));
+
+// all games
+const drawGt = sortable(document.getElementById("gt"), [
+  { key: "model", label: "Model", cls: "model", sort: g => g.model.toLowerCase() + g.n, first: "ascending", cell: (td, g) => td.textContent = g.model },
+  { key: "n", label: "Game", right: true, sort: g => g.n, first: "ascending", cell: (td, g) => td.textContent = g.n },
+  { key: "tribe", label: "Tribe", sort: g => g.tribe, first: "ascending", cell: (td, g) => td.textContent = tribeName(g.tribe) },
+  { key: "share", label: "Share", right: true, cls: "big", sort: g => g.share, cell: (td, g) => td.textContent = pct(g.share, 1) },
+  { key: "score", label: "Points", right: true, sort: g => g.score, cell: (td, g) => td.textContent = num(g.score) },
+  { key: "place", label: "Result", sort: g => g.elim ? 4 : g.place, first: "ascending", cell: (td, g) => { td.innerHTML = chip(g); td.append(" " + placeText(g)); } },
+  { key: "cities", label: "Cities", right: true, sort: g => g.cities, cell: (td, g) => td.textContent = g.cities },
+  { key: "cpusOut", label: "CPUs out", right: true, sort: g => g.cpusOut, cell: (td, g) => td.textContent = g.cpusOut },
+], () => GAMES.filter(g => lab === "All" || g.lab === lab), { key: "share", dir: "descending" }, g => select(g));
+
+// top three cards
+const cards = document.getElementById("cards");
+[...GAMES].sort((a, b) => b.share - a.share).slice(0, 3).forEach((g, i) => {
+  const c = el("button", "card"); c.type = "button";
+  c.innerHTML = `<div class="badge">#${i + 1}</div><div class="big">${pct(g.share)}</div>${polyMapArt(g, { tile: 48 })}`;
+  c.append(el("div", "who", g.model), el("div", "what", `Game ${g.n} as ${tribeName(g.tribe)} · ${num(g.score)} points · ${g.cities} cities` +
+    (g.cpusOut ? ` · ${g.cpusOut === 2 ? "both CPU tribes" : "one CPU tribe"} eliminated` : "")));
+  c.onclick = () => select(g, true);
+  cards.append(c);
+});
+
+// hero
+document.getElementById("hero-map").innerHTML = polyDiorama();
+
+// game viewer
+function select(g, scroll) {
+  selected = g; drawLb(); drawGt(); drawViewer();
+  if (scroll) document.getElementById("games").scrollIntoView({ behavior: "smooth" });
+}
+function drawViewer() {
+  const g = selected;
+  document.getElementById("v-title").textContent = `${g.model}, game ${g.n}`;
+  document.getElementById("v-facts").textContent = `${tribeName(g.tribe)} · ${num(g.score)} points · ${pct(g.share, 1)} of all points · ${placeText(g)}` + (g.cpusOut ? ` · ${g.cpusOut} CPU tribe${g.cpusOut > 1 ? "s" : ""} eliminated` : "");
+  document.getElementById("v-map").innerHTML = polyMapArt(g, { tile: 48 });
+  const tr = document.getElementById("v-tribes"); tr.replaceChildren();
+  for (const id of [g.me, ...g.opponentOrder]) {
+    const s = el("span"); const i = el("i"); i.style.background = (POLY_TRIBE[g.tribes[id]] || {}).line || "#888";
+    s.append(i, `${tribeName(g.tribes[id])} (${id === g.me ? "model" : "CPU"}): ${num(g.scores[id])}`); tr.append(s);
+  }
+  drawChart(g);
+  document.getElementById("v-note").textContent = `A CPU's line starts when the model first meets that tribe. Final results include the game's end-of-game bonus, so they run higher than the last point on the chart for every player. Map: the final turn as the model saw it, with unexplored tiles under clouds. The top three games are rebuilt in the real game from the log; the rest are drawn from it, with borders and roofs in each tribe's color.`;
+}
+function drawChart(g) {
+  const W = 520, H = 300, L = 52, R = 112, T = 12, B = 30;
+  const series = [
+    { name: `${tribeName(g.tribe)} (model)`, color: "var(--series-1)", idx: 1, id: g.me },
+    ...g.opponentOrder.map((id, k) => ({ name: `${tribeName(g.tribes[id])} (CPU)`, color: `var(--series-${k + 2})`, idx: k + 2, id })),
+  ];
+  const pts = g.curve, maxT = 30;
+  const maxY = Math.max(...pts.flatMap(p => p.slice(1)).filter(v => v != null));
+  const step = maxY > 20000 ? 10000 : maxY > 8000 ? 5000 : 2000, top = Math.ceil(maxY / step) * step;
+  const X = t => L + (t / maxT) * (W - L - R), Y = v => T + (1 - v / top) * (H - T - B);
+  let s = "";
+  for (let v = 0; v <= top; v += step) s += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end" font-size="12" fill="var(--text-muted)">${v ? (v / 1000) + "k" : 0}</text>`;
+  for (let t = 0; t <= 30; t += 5) s += `<text x="${X(t)}" y="${H - 8}" text-anchor="middle" font-size="12" fill="var(--text-muted)">${t === 30 ? "turn 30" : t}</text>`;
+  // lines: the turn-start scores, ending with the final result
+  const ends = [];
+  series.forEach(se => {
+    const p = pts.map(r => [r[0], r[se.idx]]).filter(([, v]) => v != null);
+    if (!p.length) return;
+    s += `<polyline fill="none" stroke="${se.color}" stroke-width="2" stroke-linejoin="round" points="${p.map(([t, v]) => X(t).toFixed(1) + "," + Y(v).toFixed(1)).join(" ")}"/>`;
+    const [lt, lv] = p[p.length - 1];
+    s += `<circle cx="${X(lt)}" cy="${Y(lv)}" r="4" fill="${se.color}" stroke="var(--surface-2)" stroke-width="2"/>`;
+    ends.push({ y: Y(lv), x: X(lt), se });
+  });
+  // end labels, nudged apart
+  ends.sort((a, b) => a.y - b.y);
+  for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 15) ends[i].y = ends[i - 1].y + 15;
+  ends.forEach(e => { s += `<text x="${e.x + 8}" y="${e.y + 4}" font-size="12" fill="var(--text-secondary)"></text>`; });
+  const box = el("div");
+  box.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Score per turn">${s}<line id="xh" y1="${T}" y2="${H - B}" stroke="var(--text-muted)" stroke-width="1" visibility="hidden"/><rect id="hit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/></svg>`;
+  const svg = box.firstChild;
+  [...svg.querySelectorAll("text:empty")].forEach((t, i) => t.textContent = ends[i].se.name);
+  const xh = svg.querySelector("#xh"), hit = svg.querySelector("#hit");
+  hit.addEventListener("mousemove", e => {
+    const r = svg.getBoundingClientRect(), vx = (e.clientX - r.left) / r.width * W;
+    const t = Math.max(0, Math.min(maxT, Math.round((vx - L) / (W - L - R) * maxT)));
+    const row = pts.reduce((a, b) => Math.abs(b[0] - t) < Math.abs(a[0] - t) ? b : a);
+    const vals = series.map(se => [se, row[se.idx]]).filter(([, v]) => v != null);
+    const tt = row[0];
+    xh.setAttribute("x1", X(tt)); xh.setAttribute("x2", X(tt)); xh.setAttribute("visibility", "visible");
+    showTip(e, tip => {
+      tip.append(el("div", "muted", `Start of turn ${tt}`));
+      vals.sort((a, b) => b[1] - a[1]).forEach(([se, v]) => {
+        const r = el("div", "row"), k = el("span"); const key = el("i", "key"); key.style.borderColor = se.color;
+        k.append(key, se.name); r.append(k, el("strong", null, num(v))); tip.append(r);
+      });
+    });
+  });
+  hit.addEventListener("mouseleave", () => { xh.setAttribute("visibility", "hidden"); hideTip(); });
+  document.getElementById("v-chart").replaceChildren(svg);
+}
+
+drawLb(); drawGt(); drawViewer();
+</script>
+</body>
+</html>

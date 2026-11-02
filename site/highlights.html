@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Polytopia Bench: highlights</title>
+<style>
+  @page { size: 1200px 1660px; margin: 0; }
+  :root {
+    --surface: #14203a; --surface-2: #1b2a4a; --line: #2c3d63;
+    --text-primary: #f3f1ea; --text-secondary: #c2c8d6; --text-muted: #8e99b3;
+    --bar: #3987e5; --gold: #f2c14e; --silver: #c9d0da; --bronze: #cf8f52;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--surface); }
+  /* viewed in a browser: centre the poster and shrink it to fit narrow windows (print/PDF unaffected) */
+  @media screen { html { background: #0d1528; overflow: auto; } body { margin: 0 auto; zoom: var(--fit, 1); } }
+  body { width: 1200px; height: 1660px; color: var(--text-primary); font-family: "Avenir Next", "Nunito", system-ui, sans-serif;
+         -webkit-print-color-adjust: exact; print-color-adjust: exact; overflow: hidden; position: relative; }
+  .hero { position: relative; height: 410px; padding: 52px 56px 0; overflow: hidden;
+          background: radial-gradient(ellipse at 78% 40%, #24406f 0%, var(--surface) 62%); }
+  .hero .map { position: absolute; right: 50px; top: 40px; width: 560px; filter: drop-shadow(0 18px 24px rgba(0,0,0,.35)); }
+  .diorama svg { display: block; width: 100%; height: auto; }
+  .kicker { font-size: 17px; font-weight: 700; letter-spacing: .14em; color: var(--gold); text-transform: uppercase; }
+  h1 { font-size: 60px; line-height: 1.02; font-weight: 800; margin: 14px 0 18px; letter-spacing: -.01em; max-width: 560px; }
+  .lede { font-size: 20px; line-height: 1.45; color: var(--text-secondary); max-width: 500px; margin: 0; }
+  .lede b { color: var(--text-primary); font-weight: 600; }
+  .caption { position: absolute; right: 56px; top: 476px; font-size: 14px; color: var(--text-muted); text-align: right; }
+  .caption b { color: var(--text-secondary); font-weight: 600; }
+
+  section { padding: 0 56px; }
+  h2 { font-size: 26px; font-weight: 700; margin: 26px 0 4px; }
+  .sub { font-size: 15px; color: var(--text-muted); margin: 0 0 16px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 13px; font-weight: 600; color: var(--text-muted); text-align: left; padding: 0 0 8px; letter-spacing: .04em; text-transform: uppercase; }
+  td { padding: 0; height: 49px; border-top: 1px solid var(--line); font-size: 19px; vertical-align: middle; }
+  .rank { width: 44px; color: var(--text-muted); font-weight: 600; }
+  .model { width: 250px; font-weight: 600; }
+  .model small { display: block; font-size: 13px; color: var(--text-muted); font-weight: 500; margin-top: 1px; }
+  .barcell { width: 420px; padding-right: 22px; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .share { width: 84px; font-weight: 700; font-size: 22px; }
+  .pts { width: 108px; color: var(--text-secondary); }
+  .places { width: 150px; text-align: right; }
+  th.num, th.places { text-align: right; }
+  .chip { display: inline-flex; width: 26px; height: 26px; border-radius: 50%; align-items: center; justify-content: center;
+          font-size: 14px; font-weight: 700; margin-left: 6px; color: #1c2233; }
+  .p1 { background: var(--gold); } .p2 { background: var(--silver); } .p3 { background: var(--bronze); }
+  .pe { background: transparent; border: 2px solid #5a6684; color: var(--text-muted); font-size: 13px; }
+  svg.bar { display: block; width: 100%; height: 30px; overflow: visible; }
+  .legend { display: flex; gap: 26px; font-size: 14px; color: var(--text-muted); margin: 12px 0 0; align-items: center; }
+  .legend i { display: inline-block; vertical-align: middle; margin-right: 7px; }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .card { background: var(--surface-2); border-radius: 14px; padding: 14px 16px 16px; position: relative; }
+  .card .badge { position: absolute; top: 12px; left: 14px; font-size: 13px; font-weight: 700; color: var(--gold); letter-spacing: .08em; }
+  .card .mini { height: 196px; display: flex; align-items: center; justify-content: center; margin: 22px -10px 8px; }
+  .card .mini svg, .card .mini img { width: 100%; height: 100%; object-fit: contain; }
+  .card .who { font-size: 19px; font-weight: 700; }
+  .card .what { font-size: 14px; color: var(--text-secondary); margin-top: 3px; line-height: 1.4; }
+  .card .big { position: absolute; top: 9px; right: 16px; font-size: 26px; font-weight: 800; }
+
+  footer { margin: 26px 56px 0; display: flex; justify-content: space-between; align-items: flex-end;
+           font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+  footer .how { max-width: 760px; }
+  footer .how b { color: var(--text-secondary); font-weight: 600; }
+  footer .repo { text-align: right; color: var(--text-secondary); font-weight: 600; font-size: 16px; }
+  footer .repo small { display: block; font-weight: 500; font-size: 12px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="map" id="hero-map"></div>
+  <div class="kicker">Polytopia Bench · November 2026</div>
+  <h1>Can AI out-plan the Polytopia CPU?</h1>
+  <p class="lede"><b>10 frontier models</b> each played <b>3 full games</b> of the real <i>Battle of Polytopia</i> against two <b>Hard</b> CPU tribes. Most points after 30 turns wins.</p>
+</div>
+
+<section>
+  <h2>Leaderboard</h2>
+  <p class="sub">Share of all three players' final points, averaged over 3 games. An even three-way split is 33%.</p>
+  <table>
+    <thead><tr><th></th><th>Model</th><th>Share of points</th><th class="num">Share</th><th class="num">Avg pts</th><th class="places">Games</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div class="legend">
+    <span><i style="width:22px;height:10px;border-radius:0 3px 3px 0;background:var(--bar)"></i>Average share</span>
+    <span><i style="width:10px;height:10px;border-radius:50%;background:var(--text-primary);box-shadow:0 0 0 2px var(--surface)"></i>One game</span>
+    <span><i style="width:0;height:14px;border-left:2px dashed var(--text-muted)"></i>Even split (33%)</span>
+    <span><span class="chip p1" style="margin:0 2px 0 0">1</span><span class="chip p2" style="margin:0 2px">2</span><span class="chip p3" style="margin:0 7px 0 2px">3</span>Place in each game</span>
+    <span><span class="chip pe" style="margin:0 7px 0 0">✕</span>Eliminated (counts as 3rd)</span>
+  </div>
+</section>
+
+<section>
+  <h2>Top three games</h2>
+  <p class="sub">The single games with the biggest share of points. Each map is that game's final turn as the model saw it, rebuilt in the real game from the log.</p>
+  <div class="cards" id="cards"></div>
+</section>
+
+<footer>
+  <div class="how"><b>How it works:</b> a plugin inside the Steam game gives the model the game's own legal moves as tools; the game decides every rule, battle and score. Perfection mode, 30 turns, Small 14×14 Lakes map, vs 2 Hard CPUs. Each turn is a fresh session; the model's only memory is a 400-word note to itself. Medium reasoning effort for every model. Not affiliated with Midjiwan; game art and screenshots © Midjiwan.</div>
+  <div class="repo">github.com/chaber15/polytopia-bench<small>Code, prompts and setup guide (MIT)</small></div>
+</footer>
+
+<script src="data.js"></script>
+<script src="polymap.js"></script>
+<script src="diorama.js"></script>
+<script>
+const fit = () => document.documentElement.style.setProperty("--fit", Math.min(1, innerWidth / 1200));
+fit(); addEventListener("resize", fit);
+const M = BENCH.models;
+const pct = v => Math.round(v * 100) + "%";
+const num = v => Math.round(v).toLocaleString("en-US");
+const tribeName = t => t === "Xinxi" ? "Xin-xi" : t;
+const chip = g => g.elim ? '<span class="chip pe" title="eliminated">✕</span>' : `<span class="chip p${g.place}">${g.place}</span>`;
+const rows = document.getElementById("rows");
+// Ties at the displayed precision share a rank.
+M.forEach((m, i) => {
+  const shown = Math.round(m.share * 100), prev = i && Math.round(M[i - 1].share * 100);
+  m.rank = i && shown === prev ? M[i - 1].rank : i + 1;
+});
+for (const m of M) {
+  const tr = document.createElement("tr");
+  const x = v => (v * 100).toFixed(2) + "%";
+  const dots = m.games.map(g => `<circle cx="${x(g.share)}" cy="15" r="5.5" fill="var(--text-primary)" stroke="var(--surface)" stroke-width="2"/>`).join("");
+  tr.innerHTML = `<td class="rank">${m.rank}</td>
+    <td class="model"></td>
+    <td class="barcell"><svg class="bar">
+      <rect x="0" y="6" width="100%" height="18" fill="#1d2c4c" rx="4"/>
+      <rect x="0" y="6" width="${x(m.share)}" height="18" fill="var(--bar)" rx="4"/>
+      <line x1="33.33%" x2="33.33%" y1="0" y2="30" stroke="var(--text-muted)" stroke-width="1.5" stroke-dasharray="3 3"/>
+      ${dots}</svg></td>
+    <td class="num share">${pct(m.share)}</td>
+    <td class="num pts">${num(m.points)}</td>
+    <td class="places">${m.games.map(chip).join("")}</td>`;
+  const cell = tr.querySelector(".model");
+  cell.textContent = m.model;
+  const lab = document.createElement("small"); lab.textContent = m.lab; cell.appendChild(lab);
+  rows.appendChild(tr);
+}
+
+const games = M.flatMap(m => m.games.map((g, i) => ({ ...g, model: m.model, n: i + 1 }))).sort((a, b) => b.share - a.share);
+document.getElementById("hero-map").innerHTML = polyDiorama();
+const cards = document.getElementById("cards");
+games.slice(0, 3).forEach((g, i) => {
+  const extra = g.cpusOut === 2 ? "both CPU tribes eliminated" : g.cpusOut === 1 ? "one CPU tribe eliminated" : `${g.cities} cities`;
+  const d = document.createElement("div"); d.className = "card";
+  d.innerHTML = `<div class="badge">#${i + 1}</div><div class="big">${pct(g.share)}</div>
+    <div class="mini">${polyMapArt(g, { tile: 48 })}</div>
+    <div class="who"></div>
+    <div class="what">Game ${g.n} as ${tribeName(g.tribe)} · ${num(g.score)} points<br>${g.cities} cities · ${extra}</div>`;
+  d.querySelector(".who").textContent = g.model;
+  cards.appendChild(d);
+});
+</script>
+</body>
+</html>

@@ -23,3 +23,14 @@ tasks/
 .claude/
 # Local research notes (game internals), kept out of the public repo
 notes/
+
+# Game unit art (Midjiwan), used locally for the graphics only
+site/img/
+
+# local tools (ffmpeg for recordings)
+tools/
+
+# Rendered highlights (they include the game art from site/img/)
+site/highlights.png
+site/highlights.pdf
+.DS_Store

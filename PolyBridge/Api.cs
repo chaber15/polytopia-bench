@@ -182,6 +182,8 @@ public static partial class Api
             case "GET /status": return Status();
             case "POST /newgame": return NewGame(r);
             case "POST /resume": return Resume();
+            case "POST /stage": return Stage(r);
+            case "POST /camera": return Camera(r);
             case "POST /quit": return Quit();
             case "POST /seat": return SetSeat(r);
             case "GET /state": return State(r);

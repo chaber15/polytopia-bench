@@ -1,5 +1,7 @@
 # Polytopia Bench
 
+**Planning ahead: strategic thinking in frontier models.** Results, every game and the final maps: https://chaber15.github.io/polytopia-bench/
+
 Frontier language models play the real *The Battle of Polytopia* (Steam, build 2.17.3.16375) against the game's own CPU. A small BepInEx plugin inside the game exposes the game state and every legal action over a local HTTP API; a Python harness hands them to a model each turn as tools. The game decides what is legal, how combat goes and who wins; nothing is simulated.
 
 The question is long-term judgment: Polytopia rewards investing early (techs, cities, roads) over grabbing points now, and a 30-turn game is short enough to run on a subscription.
@@ -19,14 +21,13 @@ The question is long-term judgment: Polytopia rewards investing early (techs, ci
 | Gemini 4 Argon | Cursor / OpenRouter | 3 | 74% | 25,605 | 1st, 1st, 1st |
 | GPT-6 Astra | Codex | 3 | 51% | 14,920 | 2nd, 1st, 1st |
 | Claude Opus 5.5 | Claude Code | 3 | 46% | 14,621 | 2nd, 1st, 1st |
-| Claude Fable 5.1 | Cursor | 1 | 43% | 14,352 | 1st |
 | GPT-6.1 Sol | Codex | 3 | 39% | 11,891 | 1st, 1st, 3rd (elim.) |
 | Grok 4.7 | Cursor | 3 | 38% | 12,515 | 2nd, 2nd, 1st |
 | GPT-6.1 Terra | Codex | 3 | 32% | 9,296 | 3rd (elim.), 1st, 2nd |
 | GPT-6 Luna | Codex | 3 | 30% | 7,501 | 3rd, 1st, 2nd |
-| Claude Haiku 5.5 | Claude Code | 3 | 26% | 5,267 | 1st, 3rd (elim.), 3rd (elim.) |
 | Claude Sonnet 5.5 | Claude Code | 3 | 25% | 6,173 | 3rd (elim.), 1st, 3rd (elim.) |
-| Muse Wonder 1.0 | Cursor / OpenRouter | 3 | 20% | 5,725 | 3rd (elim.), 3rd (elim.), 2nd |
+| Claude Haiku 5.5 | Claude Code | 3 | 25% | 5,267 | 1st, 3rd (elim.), 3rd (elim.) |
+| Muse Wonder 1.0 | Cursor / OpenRouter | 3 | 21% | 5,725 | 3rd (elim.), 3rd (elim.), 2nd |
 
 Models with fewer than three games have provisional rankings; even three-game averages can vary with the map draw. The current leaderboard excludes the older GPT-5.6 generation; its raw game logs are retained.
 

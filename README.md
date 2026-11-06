@@ -29,7 +29,14 @@ The question is long-term judgment: Polytopia rewards investing early (techs, ci
 | Claude Haiku 5.5 | Claude Code | 3 | 25% | 5,267 | 1st, 3rd (elim.), 3rd (elim.) |
 | Muse Wonder 1.0 | Cursor / OpenRouter | 3 | 21% | 5,725 | 3rd (elim.), 3rd (elim.), 2nd |
 
-Models with fewer than three games have provisional rankings; even three-game averages can vary with the map draw. The current leaderboard excludes the older GPT-5.6 generation; its raw game logs are retained.
+Not ranked (fewer than three completed games), listed with every game on the results site:
+
+| Model | Via | Games | Share of score | Avg points | Places |
+|---|---|---|---|---|---|
+| Claude Fable 5.1 | Cursor | 1 | 43% | 14,352 | 1st |
+| Gemini 3.8 Flash | Antigravity / OpenRouter | 2 | 21% | 5,528 | 3rd, 2nd |
+
+Models with fewer than three games are not ranked; even three-game averages can vary with the map draw. The current leaderboard excludes the older GPT-5.6 generation; its raw game logs are retained.
 
 ## How it works
 

@@ -126,7 +126,7 @@
       <div class="kicker">Polytopia Bench · October 2026</div>
       <h1>Planning ahead: strategic thinking in frontier models</h1>
       <p class="lede"><b>10 frontier models</b> each played <b>3 full games</b> of the real <i>Battle of Polytopia</i> against two <b>Hard</b> CPU tribes. Most points after 30 turns wins.</p>
-      <div class="links"><a href="#leaderboard">Leaderboard</a><a href="#games">All 30 games</a><a href="#method">How it works</a><a href="https://github.com/chaber15/polytopia-bench">Code on GitHub</a></div>
+      <div class="links"><a href="#leaderboard">Leaderboard</a><a href="#games">All 33 games</a><a href="#method">How it works</a><a href="https://github.com/chaber15/polytopia-bench">Code on GitHub</a></div>
     </div>
     <div class="hero-map"><div id="hero-map"></div></div>
   </div>
@@ -155,8 +155,8 @@
   </section>
 
   <section id="games">
-    <h2>All 30 games</h2>
-    <p class="sub">Every headline game. Click a game to see its final map and the score race, turn by turn.</p>
+    <h2>All 33 games</h2>
+    <p class="sub">Every completed headline game. Click a game to see its final map and the score race, turn by turn. Three games come from models with fewer than three runs (Claude Fable 5.1, Gemini 3.8 Flash); they are marked <i>not ranked</i> and left out of the leaderboard and top three.</p>
     <div class="viewer" id="viewer" aria-live="polite">
       <div>
         <h3 id="v-title"></h3>
@@ -210,8 +210,11 @@ M.forEach((m, i) => {
   m.best = Math.max(...m.games.map(g => g.share));
   m.games.forEach((g, i) => { g.model = m.model; g.lab = m.lab; g.n = i + 1; });
 });
-const GAMES = M.flatMap(m => m.games);
-let selected = [...GAMES].sort((a, b) => b.share - a.share)[0];
+const EXTRA = BENCH.extra || [];
+EXTRA.forEach(m => m.games.forEach((g, i) => { g.model = m.model; g.lab = m.lab; g.n = i + 1; g.extra = true; }));
+const RANKED = M.flatMap(m => m.games);
+const GAMES = [...RANKED, ...EXTRA.flatMap(m => m.games)];
+let selected = [...RANKED].sort((a, b) => b.share - a.share)[0];
 let lab = "All";
 
 // theme toggle: stamps data-theme so it wins over the OS setting both ways
@@ -262,7 +265,7 @@ function sortable(table, cols, rows, initial, onRow) {
 }
 
 // leaderboard
-const LAB_ORDER = ["All", ...[...new Set(M.map(m => m.lab))].sort()];
+const LAB_ORDER = ["All", ...[...new Set([...M, ...EXTRA].map(m => m.lab))].sort()];
 const lf = document.getElementById("lab-filter");
 LAB_ORDER.forEach(l => {
   const b = el("button", null, l === "All" ? "All labs" : l); b.type = "button"; b.setAttribute("aria-pressed", l === lab);
@@ -303,7 +306,7 @@ const drawLb = sortable(document.getElementById("lb"), [
 
 // all games
 const drawGt = sortable(document.getElementById("gt"), [
-  { key: "model", label: "Model", cls: "model", sort: g => g.model.toLowerCase() + g.n, first: "ascending", cell: (td, g) => td.textContent = g.model },
+  { key: "model", label: "Model", cls: "model", sort: g => g.model.toLowerCase() + g.n, first: "ascending", cell: (td, g) => { td.textContent = g.model; if (g.extra) td.append(el("small", null, "not ranked")); } },
   { key: "n", label: "Game", right: true, sort: g => g.n, first: "ascending", cell: (td, g) => td.textContent = g.n },
   { key: "tribe", label: "Tribe", sort: g => g.tribe, first: "ascending", cell: (td, g) => td.textContent = tribeName(g.tribe) },
   { key: "share", label: "Share", right: true, cls: "big", sort: g => g.share, cell: (td, g) => td.textContent = pct(g.share, 1) },
@@ -315,7 +318,7 @@ const drawGt = sortable(document.getElementById("gt"), [
 
 // top three cards
 const cards = document.getElementById("cards");
-[...GAMES].sort((a, b) => b.share - a.share).slice(0, 3).forEach((g, i) => {
+[...RANKED].sort((a, b) => b.share - a.share).slice(0, 3).forEach((g, i) => {
   const c = el("button", "card"); c.type = "button";
   c.innerHTML = `<div class="badge">#${i + 1}</div><div class="big">${pct(g.share)}</div>${polyMapArt(g, { tile: 48 })}`;
   c.append(el("div", "who", g.model), el("div", "what", `Game ${g.n} as ${tribeName(g.tribe)} · ${num(g.score)} points · ${g.cities} cities` +
@@ -334,7 +337,7 @@ function select(g, scroll) {
 }
 function drawViewer() {
   const g = selected;
-  document.getElementById("v-title").textContent = `${g.model}, game ${g.n}`;
+  document.getElementById("v-title").textContent = `${g.model}, game ${g.n}` + (g.extra ? " (not ranked)" : "");
   document.getElementById("v-facts").textContent = `${tribeName(g.tribe)} · ${num(g.score)} points · ${pct(g.share, 1)} of all points · ${placeText(g)}` + (g.cpusOut ? ` · ${g.cpusOut} CPU tribe${g.cpusOut > 1 ? "s" : ""} eliminated` : "");
   document.getElementById("v-map").innerHTML = polyMapArt(g, { tile: 48 });
   const tr = document.getElementById("v-tribes"); tr.replaceChildren();

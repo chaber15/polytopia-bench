@@ -78,6 +78,8 @@ Offline only: single-player and local Pass & Play. Don't use this online or in r
 
 Not affiliated with or endorsed by Midjiwan. *The Battle of Polytopia* and its data and text belong to Midjiwan; this repo contains none of the game's files or text.
 
+The only game art in the repo is in `site/img/`: four unit sprites (via the [Polytopia Fandom wiki](https://polytopia.fandom.com/)) and three in-game screenshots of the top games' final turns. That art is © Midjiwan, used with credit, and is **not** covered by the MIT license.
+
 ## License
 
-The code in this repo is [MIT licensed](LICENSE). The license covers this repo only, not the game or anything generated from it.
+The code in this repo is [MIT licensed](LICENSE). The license covers this repo only, not the game, anything generated from it, or the game art in `site/img/`.
